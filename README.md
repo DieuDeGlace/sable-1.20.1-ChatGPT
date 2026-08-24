@@ -32,12 +32,13 @@ the selection wand, gravity gun and test commands. See
 
 ---
 
-## Upstream README (original)
+## Upstream README
 
-The following is the original upstream Sable README, preserved verbatim from
-upstream commit `925c312a2019908e20220b814ef55b768aa97314`.
+The following preserves the original upstream Sable README from commit
+`925c312a2019908e20220b814ef55b768aa97314`, with asset paths adjusted for this
+branch's repository layout.
 
-<p align="center"><img src="./.idea/icon.png" alt="Logo" width="200"></p>
+<p align="center"><img src="./forge/src/main/resources/icon.png" alt="Logo" width="200"></p>
 <h1 align="center">Sable<br>
 <div align="center">
    <a href="https://discord.gg/createaeronautics">
