@@ -25,8 +25,10 @@ import net.minecraft.world.level.block.state.StateDefinition;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 
 public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceReloadListener {
@@ -37,6 +39,7 @@ public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceRe
     protected static final Gson GSON = new Gson();
     public static final PhysicsBlockPropertiesDefinitionLoader INSTANCE = new PhysicsBlockPropertiesDefinitionLoader();
     private final ObjectList<PhysicsBlockPropertiesDefinition> definitions = new ObjectArrayList<>();
+    private final Set<ResourceLocation> definitionIds = new LinkedHashSet<>();
 
     private PhysicsBlockPropertiesDefinitionLoader() {
         super(GSON, NAME);
@@ -50,6 +53,7 @@ public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceRe
     @Override
     protected void apply(final Map<ResourceLocation, JsonElement> map, final ResourceManager resourceManager, final ProfilerFiller profilerFiller) {
         this.definitions.clear();
+        this.definitionIds.clear();
 
         for (final Map.Entry<ResourceLocation, JsonElement> entry : map.entrySet()) {
             final ResourceLocation file = entry.getKey();
@@ -60,6 +64,7 @@ public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceRe
             decoded.result().ifPresent(pair -> {
                 final PhysicsBlockPropertiesDefinition definition = pair.getFirst();
                 this.definitions.add(definition);
+                this.definitionIds.add(file);
             });
 
             decoded.error().ifPresent(error -> {
@@ -123,5 +128,9 @@ public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceRe
 
     public Collection<PhysicsBlockPropertiesDefinition> getDefinitions() {
         return this.definitions;
+    }
+
+    public Set<ResourceLocation> getDefinitionIds() {
+        return Set.copyOf(this.definitionIds);
     }
 }

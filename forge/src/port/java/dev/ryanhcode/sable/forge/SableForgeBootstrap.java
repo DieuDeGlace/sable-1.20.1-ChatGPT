@@ -123,6 +123,27 @@ public final class SableForgeBootstrap {
     public static final String CREATE_BASELINE = "1a1a9a2819b4f89f78caec41b55ed8cb222fa24b";
 
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Set<ResourceLocation> BUNDLED_PHYSICS_DEFINITION_IDS = Set.of(
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "bedrock_absurdity"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "bouncy"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "end_stone_brick_slab"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "end_stones"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "flywheel"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "fragile"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "grindstone"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "half_volume"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "heavy"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "light"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "mud"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "normal"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "piston"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "quarter_volume"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "slippery"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "sticky"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "super_heavy"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "super_light"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "weightless")
+    );
     private final SablePacketManager packetManager;
     private final RegistryObject<Attribute> punchStrength;
     private final RegistryObject<Attribute> punchCooldown;
@@ -306,9 +327,14 @@ public final class SableForgeBootstrap {
         verifyLoadedTagContents();
         final List<PhysicsBlockPropertiesDefinition> definitions = List.copyOf(
                 PhysicsBlockPropertiesDefinitionLoader.INSTANCE.getDefinitions());
-        if (definitions.size() != 19) {
-            throw new IllegalStateException("Expected 19 bundled physics block definitions, found "
-                    + definitions.size());
+        final Set<ResourceLocation> loadedDefinitionIds =
+                PhysicsBlockPropertiesDefinitionLoader.INSTANCE.getDefinitionIds();
+        if (!loadedDefinitionIds.containsAll(BUNDLED_PHYSICS_DEFINITION_IDS)) {
+            final Set<ResourceLocation> missingDefinitionIds = new java.util.LinkedHashSet<>(
+                    BUNDLED_PHYSICS_DEFINITION_IDS);
+            missingDefinitionIds.removeAll(loadedDefinitionIds);
+            throw new IllegalStateException("Missing bundled Sable physics block definitions: "
+                    + missingDefinitionIds);
         }
         for (int index = 1; index < definitions.size(); index++) {
             if (definitions.get(index - 1).priority() > definitions.get(index).priority()) {
@@ -362,8 +388,10 @@ public final class SableForgeBootstrap {
             throw new IllegalStateException("Expected override-applied extended piston mass 0.5, found "
                     + pistonExtendedMass);
         }
-        LOGGER.info("Sable server data reload verified ({} physics definitions, {} floating material)",
-                definitions.size(), FloatingBlockMaterialDataHandler.allMaterials.size());
+        LOGGER.info("Sable server data reload verified ({} required bundled definitions present, {} total "
+                        + "physics definitions, {} floating material)",
+                BUNDLED_PHYSICS_DEFINITION_IDS.size(), definitions.size(),
+                FloatingBlockMaterialDataHandler.allMaterials.size());
         LOGGER.info("Sable loaded tag contents verified (vanilla and Create members)");
         LOGGER.info("Sable BlockState physics application verified (bedrock mass {}, grindstone friction {}, "
                         + "slime mass/restitution {}/{}, extended piston mass {})",
