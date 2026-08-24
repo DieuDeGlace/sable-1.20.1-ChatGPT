@@ -77,6 +77,9 @@ sourceSets {
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/physics/callback'
+            // Both Forge mixin configs name this plugin. Keep the upstream
+            // loader plugin and its common base in the production source set.
+            srcDir 'src/main/java/dev/ryanhcode/sable/plugin'
             srcDir '../sable_companion/src/main/java'
             srcDir '../sable_rapier/src/main/java'
             exclude '**/sublevel/water_occlusion/ClientWaterOcclusionContainer.java'
@@ -114,6 +117,7 @@ sourceSets {
                         || path.contains('/neoforge/mixin/dynamic_directional_shading/')
                 def selectedVanilla = path.contains('/mixin/block_placement/')
                         || path.contains('/mixin/chunk_container_replacement/')
+                        || path.contains('/mixin/game_test/')
                         || path.contains('/mixin/command/') || path.contains('/mixin/conduit/')
                         || path.contains('/mixin/death_message/')
                         || path.contains('/mixin/entity/entity_aabb_lookup/')
@@ -155,9 +159,11 @@ sourceSets {
                         && !path.contains('/mixin/interaction_distance/')
                         && !path.contains('/mixin/camera/camera_rotation/')
                         && !path.contains('/mixin/dynamic_directional_shading/')
+                        && !path.endsWith('/mixin/AbstractSableMixinPlugin.java')
                         && !path.contains('/mixin/sublevel_render/impl/embeddium/')
                         && !path.contains('/mixin/block_placement/')
                         && !path.contains('/mixin/chunk_container_replacement/')
+                        && !path.contains('/mixin/game_test/')
                         && !path.contains('/mixin/command/') && !path.contains('/mixin/conduit/')
                         && !path.contains('/mixin/death_message/')
                         && !path.contains('/mixin/entity/entity_aabb_lookup/')
@@ -186,7 +192,13 @@ sourceSets {
             exclude '**/render/dynamic_shade/SableDynamicDirectionalShadingPreProcessor.java'
             exclude '**/render/sky_light_shadow/**'
             exclude '**/render/water_occlusion/**'
-            exclude '**/render/region/**'
+            // The upstream 1.21 region implementation uses the 1.21 vertex
+            // builder contract. Keep those sources out, while compiling the
+            // API-compatible 1.20.1 mesh-builder adapter from src/port/java.
+            exclude { element ->
+                element.file.path.replace('\\', '/').contains(
+                        '/common/src/main/java/dev/ryanhcode/sable/render/region/')
+            }
             exclude '**/sublevel/render/dispatcher/FancySubLevelRenderDispatcher.java'
             exclude '**/sublevel/render/dispatcher/ReachAroundSubLevelRenderDispatcher.java'
             exclude '**/sublevel/render/dispatcher/SubLevelTextureCache.java'
@@ -573,6 +585,9 @@ tasks.named('compileJava') {
     // Target-only plot tick policy lives at its real package path and must be
     // present in the production compiler input, not only the refmap source set.
     source file('src/port/java/dev/ryanhcode/sable/mixin/plot/LevelBlockEntityTickPolicyMixin.java')
+    // Minecraft 1.20.1 funnels GameTest structure cleanup through this shared
+    // hook; keep the target-signature adapter in the production JAR.
+    source file('../common/src/main/java/dev/ryanhcode/sable/mixin/game_test/StructureUtilsMixin.java')
     // Optional Embeddium target adapter must be present in the production
     // compiler input even though the shared mixin source filter is selective.
     source file('src/port/java/dev/ryanhcode/sable/mixin/sublevel_render/impl/embeddium/EmbeddiumDirtyBridgeMixin.java')

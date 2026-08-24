@@ -4,7 +4,6 @@ import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.annotation.MixinModVersionConstraint;
 import dev.ryanhcode.sable.platform.SableLoaderPlatform;
 import foundry.veil.Veil;
-import foundry.veil.api.compat.SodiumCompat;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
@@ -28,13 +27,13 @@ import java.util.Set;
 public abstract class AbstractSableMixinPlugin implements IMixinConfigPlugin {
     public static final Logger LOGGER = LogUtils.getLogger();
     private final Object2BooleanMap<String> modLoadedCache = new Object2BooleanOpenHashMap<>();
-    private boolean sodiumPresent;
+    private boolean embeddiumPresent;
 
     @Override
     public void onLoad(final String mixinPackage) {
-        this.sodiumPresent = SodiumCompat.isLoaded();
+        this.embeddiumPresent = Veil.platform().isModLoaded("embeddium");
 
-        LOGGER.info("Using {} renderer mixins", this.sodiumPresent ? "Sodium" : "Vanilla");
+        LOGGER.info("Using {} renderer mixins", this.embeddiumPresent ? "Embeddium" : "Vanilla");
     }
 
     @Override
@@ -45,8 +44,11 @@ public abstract class AbstractSableMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(final String targetClassName, final String mixinClassName) {
         // TODO: Housekeeping
-        if (mixinClassName.startsWith("dev.ryanhcode.sable.mixin.sublevel_render.impl")) {
-            return this.sodiumPresent ? mixinClassName.startsWith("dev.ryanhcode.sable.mixin.sublevel_render.impl.sodium") : mixinClassName.startsWith("dev.ryanhcode.sable.mixin.sublevel_render.impl.vanilla");
+        if (mixinClassName.contains(".sublevel_render.impl.embeddium.")) {
+            return this.embeddiumPresent;
+        }
+        if (mixinClassName.contains(".sublevel_render.impl.vanilla.")) {
+            return !this.embeddiumPresent;
         }
 
         if (mixinClassName.startsWith("dev.ryanhcode.sable.mixin.compatibility.") ||

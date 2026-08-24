@@ -90,6 +90,7 @@
     "entity.teleport_players.ServerPlayerMixin",
     "extension.EntityMixin",
     "fluids_on_sub_levels.FlowingFluidMixin",
+    "game_test.StructureUtilsMixin",
     "impact.BeehiveBlockMixin",
     "impact.BellBlockMixin",
     "impact.TntBlockMixin",

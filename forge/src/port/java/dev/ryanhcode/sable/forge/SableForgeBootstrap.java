@@ -354,9 +354,11 @@ public final class SableForgeBootstrap {
                         + selector.id());
             }
         }
-        if (FloatingBlockMaterialDataHandler.allMaterials.size() != 1) {
-            throw new IllegalStateException("Expected 1 bundled floating material, found "
-                    + FloatingBlockMaterialDataHandler.allMaterials.size());
+        final ResourceLocation bundledFloatingMaterial =
+                ResourceLocation.fromNamespaceAndPath(MOD_ID, "end_stone");
+        if (!FloatingBlockMaterialDataHandler.allMaterials.containsKey(bundledFloatingMaterial)) {
+            throw new IllegalStateException("Missing bundled Sable floating material: "
+                    + bundledFloatingMaterial);
         }
         PhysicsBlockPropertiesDefinitionLoader.INSTANCE.applyAll();
         final BlockStateExtension bedrock = (BlockStateExtension) (Object) Blocks.BEDROCK.defaultBlockState();
@@ -389,7 +391,7 @@ public final class SableForgeBootstrap {
                     + pistonExtendedMass);
         }
         LOGGER.info("Sable server data reload verified ({} required bundled definitions present, {} total "
-                        + "physics definitions, {} floating material)",
+                        + "physics definitions, {} floating materials)",
                 BUNDLED_PHYSICS_DEFINITION_IDS.size(), definitions.size(),
                 FloatingBlockMaterialDataHandler.allMaterials.size());
         LOGGER.info("Sable loaded tag contents verified (vanilla and Create members)");
