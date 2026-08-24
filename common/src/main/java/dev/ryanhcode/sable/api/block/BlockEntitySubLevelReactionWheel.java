@@ -22,5 +22,5 @@ public interface BlockEntitySubLevelReactionWheel {
      * The default block state getter for block entities
      * @return The block state for this block entity
      */
-    BlockState getBlockState();
+    BlockState sable$getBlockState();
 }

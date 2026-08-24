@@ -176,6 +176,7 @@ function Assert-ProductionJar {
             'sable.mixins.json',
             'sable-create.mixins.json',
             'sable-forge.mixins.json',
+            'dev/ryanhcode/sable/neoforge/mixin/compatibility/immersiveengineering/TurretBlockEntityMixin.class',
             'LICENSE.md',
             'THIRD_PARTY_NOTICES.md'
         )) {
@@ -189,6 +190,42 @@ function Assert-ProductionJar {
         })
         if ($forbidden.Count -gt 0) {
             throw "Development-only content entered the production JAR: $($forbidden -join ', ')"
+        }
+
+        $abiChecks = @(
+            @{
+                Entry = 'dev/ryanhcode/sable/physics/ReactionWheelManager.class'
+                Forbidden = 'm_58900_'
+                Message = 'Reaction wheel interface call was remapped as a Minecraft BlockEntity method'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/hose_pulley/HosePulleyFluidHandlerMixin.class'
+                Forbidden = 'net/neoforged/neoforge/fluids/FluidStack'
+                Message = 'NeoForge FluidStack descriptor entered the Forge hose pulley mixin'
+            }
+        )
+        foreach ($check in $abiChecks) {
+            $entry = $archive.GetEntry($check.Entry)
+            if ($null -eq $entry) {
+                throw "Production JAR is missing $($check.Entry)"
+            }
+            $stream = $entry.Open()
+            try {
+                $reader = [System.IO.BinaryReader]::new($stream)
+                try {
+                    $bytes = $reader.ReadBytes([int]$entry.Length)
+                    $classText = [System.Text.Encoding]::ASCII.GetString($bytes)
+                }
+                finally {
+                    $reader.Dispose()
+                }
+            }
+            finally {
+                $stream.Dispose()
+            }
+            if ($classText.Contains($check.Forbidden)) {
+                throw $check.Message
+            }
         }
     }
     finally {

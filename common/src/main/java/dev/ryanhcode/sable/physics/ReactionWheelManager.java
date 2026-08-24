@@ -58,11 +58,11 @@ public class ReactionWheelManager {
 
     void addWheelMomentumToLocalVector(final BlockPos pos, final BlockEntitySubLevelReactionWheel wheel, final Vector3d v) {
         wheel.sable$getAngularVelocity(temp.zero());
-        final Vec3 blockInertia = PhysicsBlockPropertyHelper.getInertia(this.subLevel.getLevel(), pos, wheel.getBlockState());
+        final Vec3 blockInertia = PhysicsBlockPropertyHelper.getInertia(this.subLevel.getLevel(), pos, wheel.sable$getBlockState());
         if (blockInertia == null)
             temp.mul(1 / 6.0);//default block inertia
         else
             temp.mul(blockInertia.x, blockInertia.y, blockInertia.z);
-        v.fma(PhysicsBlockPropertyHelper.getMass(this.subLevel.getLevel(), pos, wheel.getBlockState()), temp);
+        v.fma(PhysicsBlockPropertyHelper.getMass(this.subLevel.getLevel(), pos, wheel.sable$getBlockState()), temp);
     }
 }

@@ -50,4 +50,9 @@ public abstract class CreateFlywheelBlockEntityMixin extends KineticBlockEntity
         final float angularSpeed = this.sable$smoothedSpeed * (float) (Math.PI * 2.0D) / 60.0F;
         velocity.set(direction.getStepX(), direction.getStepY(), direction.getStepZ()).mul(angularSpeed);
     }
+
+    @Override
+    public BlockState sable$getBlockState() {
+        return this.getBlockState();
+    }
 }

@@ -51,7 +51,7 @@ public abstract class HosePulleyFluidHandlerMixin {
 		});
 	}
 
-	@WrapOperation(method = "drainInternal", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/transfer/FluidDrainingBehaviour;getDrainableFluid(Lnet/minecraft/core/BlockPos;)Lnet/neoforged/neoforge/fluids/FluidStack;"))
+	@WrapOperation(method = "drainInternal", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/transfer/FluidDrainingBehaviour;getDrainableFluid(Lnet/minecraft/core/BlockPos;)Lnet/minecraftforge/fluids/FluidStack;"))
 	public FluidStack sable$modifyGetDrainableFluid(final FluidDrainingBehaviour instance, final BlockPos rootPos, final Operation<FluidStack> original) {
 		if (this.sable$lastValidPos != null) {
 			return original.call(instance, this.sable$lastValidPos);
@@ -69,7 +69,7 @@ public abstract class HosePulleyFluidHandlerMixin {
 		return original.call(instance, root, simulate);
 	}
 
-	@WrapOperation(method = "getFluidInTank", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/transfer/FluidDrainingBehaviour;getDrainableFluid(Lnet/minecraft/core/BlockPos;)Lnet/neoforged/neoforge/fluids/FluidStack;"))
+	@WrapOperation(method = "getFluidInTank", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/transfer/FluidDrainingBehaviour;getDrainableFluid(Lnet/minecraft/core/BlockPos;)Lnet/minecraftforge/fluids/FluidStack;"))
 	public FluidStack sable$modifyGetFluidInTank(final FluidDrainingBehaviour instance, final BlockPos rootPos, final Operation<FluidStack> original) {
 		if (this.sable$lastValidPos != null) {
 			return original.call(instance, this.sable$lastValidPos);

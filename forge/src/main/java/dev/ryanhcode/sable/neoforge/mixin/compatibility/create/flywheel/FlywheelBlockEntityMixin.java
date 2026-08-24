@@ -50,4 +50,9 @@ public abstract class FlywheelBlockEntityMixin extends KineticBlockEntity implem
         float angularSpeed = sable$smoothedSpeed * (float)Math.TAU / 60f;
         v.set(dir.getStepX(),dir.getStepY(),dir.getStepZ()).mul(angularSpeed);
     }
+
+    @Override
+    public BlockState sable$getBlockState() {
+        return getBlockState();
+    }
 }

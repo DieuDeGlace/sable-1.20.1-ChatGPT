@@ -7,8 +7,10 @@
   "mixinextras": {
     "minVersion": "0.5.0"
   },
+  "plugin": "dev.ryanhcode.sable.plugin.SableMixinPlugin",
   "mixins": [
-    "entities_stick_sublevels.effects.LivingEntityMixin"
+    "entities_stick_sublevels.effects.LivingEntityMixin",
+    "compatibility.immersiveengineering.TurretBlockEntityMixin"
   ],
   "client": [
     "admitted.ForgeLevelRendererAccessor",
