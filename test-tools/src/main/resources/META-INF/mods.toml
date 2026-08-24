@@ -1,0 +1,33 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="sable_test_tools"
+version="${version}"
+displayName="Sable Test Tools"
+authors="Sable Test Tools contributors"
+description='''
+In-game selection wand, gravity gun, and commands for testing Sable physical sublevels.
+'''
+
+[[dependencies.sable_test_tools]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,48)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.sable_test_tools]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.sable_test_tools]]
+modId="sable"
+mandatory=true
+versionRange="[2.0.5,)"
+ordering="AFTER"
+side="BOTH"

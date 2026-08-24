@@ -20,7 +20,7 @@ import java.util.function.Function;
 @Mixin(EntityType.class)
 public class EntityTypeMixin {
 
-    @Inject(method = {"method_17843", "lambda$loadEntityRecursive$7"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;startRiding(Lnet/minecraft/world/entity/Entity;Z)Z"))
+    @Inject(method = {"lambda$loadEntityRecursive$7", "m_185991_"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;startRiding(Lnet/minecraft/world/entity/Entity;Z)Z"))
     private static void sable$startRidingEntity(final CompoundTag compoundTag,
                                                 final Level level,
                                                 final Function function,

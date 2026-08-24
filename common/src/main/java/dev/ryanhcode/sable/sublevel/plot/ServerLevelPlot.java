@@ -149,10 +149,9 @@ public class ServerLevelPlot extends LevelPlot {
         final ChunkPos pos = levelChunk.getPos();
         final ServerLevel serverLevel = this.getSubLevel().getLevel();
 
-        if (serverLevel.getChunkSource() instanceof final ServerChunkCache cache) {
-            cache.chunkMap.updatingChunkMap.remove(pos.toLong());
-            cache.chunkMap.modified = true;
-        }
+        final ServerChunkCache cache = serverLevel.getChunkSource();
+        cache.chunkMap.updatingChunkMap.remove(pos.toLong());
+        cache.chunkMap.modified = true;
 
         levelChunk.setLoaded(false);
 
@@ -359,7 +358,8 @@ public class ServerLevelPlot extends LevelPlot {
                 }
 
                 final CompoundTag sectionTag = new CompoundTag();
-                sectionTag.put("block_states", BLOCK_STATE_CODEC.encodeStart(NbtOps.INSTANCE, section.getStates()).getOrThrow());
+                sectionTag.put("block_states", BLOCK_STATE_CODEC.encodeStart(NbtOps.INSTANCE, section.getStates())
+                        .getOrThrow(false, Sable.LOGGER::error));
 
                 final SectionPos sectionPos = SectionPos.of(global, level.getSectionYFromSectionIndex(idx));
                 final DataLayer blockLight = this.lightEngine.getLayerListener(LightLayer.BLOCK).getDataLayerData(sectionPos);
@@ -377,12 +377,12 @@ public class ServerLevelPlot extends LevelPlot {
             }
             chunkTag.put("sections", sectionsTag);
 
-            tag.putBoolean("isLightOn", chunk.isLightCorrect());
+            chunkTag.putBoolean("isLightOn", chunk.isLightCorrect());
 
             final ListTag blockEntitiesTag = new ListTag();
 
             for (final BlockPos blockPos : chunk.getBlockEntitiesPos()) {
-                final CompoundTag blockEntityNBT = chunk.getBlockEntityNbtForSaving(blockPos, level.registryAccess());
+                final CompoundTag blockEntityNBT = chunk.getBlockEntityNbtForSaving(blockPos);
 
                 if (blockEntityNBT != null) {
                     blockEntitiesTag.add(blockEntityNBT);
@@ -399,15 +399,15 @@ public class ServerLevelPlot extends LevelPlot {
             final CompoundTag heightMapsTag = new CompoundTag();
 
             for (final Map.Entry<Heightmap.Types, Heightmap> entry : chunk.getHeightmaps()) {
-                if (chunk.getPersistedStatus().heightmapsAfter().contains(entry.getKey())) {
+                if (chunk.getStatus().heightmapsAfter().contains(entry.getKey())) {
                     heightMapsTag.put(entry.getKey().getSerializationKey(), new LongArrayTag(entry.getValue().getRawData()));
                 }
             }
 
             chunkTag.put("heightmaps", heightMapsTag);
 
-            SablePlotPlatform.INSTANCE.writeLightData(tag, level.registryAccess(), chunk);
-            SablePlotPlatform.INSTANCE.writeChunkAttachments(tag, level.registryAccess(), chunk);
+            SablePlotPlatform.INSTANCE.writeLightData(chunkTag, level.registryAccess(), chunk);
+            SablePlotPlatform.INSTANCE.writeChunkAttachments(chunkTag, level.registryAccess(), chunk);
 
             chunks.put(String.valueOf(ChunkPos.asLong(local.x, local.z)), chunkTag);
         }
@@ -468,7 +468,7 @@ public class ServerLevelPlot extends LevelPlot {
 
                 palettedContainer = BLOCK_STATE_CODEC.parse(NbtOps.INSTANCE, sectionTag.getCompound("block_states"))
                         .promotePartial(string -> logLoadingErrors(new ChunkPos(chunkPos), chunk.getSectionYFromSectionIndex(yIndex), string))
-                        .getOrThrow(ChunkSerializer.ChunkReadException::new);
+                        .getOrThrow(false, Sable.LOGGER::error);
 
                 final Registry<Biome> biomeRegistry = level.registryAccess().registryOrThrow(Registries.BIOME);
                 final PalettedContainer<Holder<Biome>> biomeContainer = new PalettedContainer<>(biomeRegistry.asHolderIdMap(), biomeRegistry.getHolderOrThrow(this.biome), PalettedContainer.Strategy.SECTION_BIOMES);
@@ -511,7 +511,7 @@ public class ServerLevelPlot extends LevelPlot {
                 final CompoundTag heightMapsTag = chunkTag.getCompound("heightmaps");
                 final EnumSet<Heightmap.Types> enumset = EnumSet.noneOf(Heightmap.Types.class);
 
-                for (final Heightmap.Types heightMapType : chunk.getPersistedStatus().heightmapsAfter()) {
+                for (final Heightmap.Types heightMapType : chunk.getStatus().heightmapsAfter()) {
                     final String heightMapKey = heightMapType.getSerializationKey();
                     if (heightMapsTag.contains(heightMapKey, Tag.TAG_LONG_ARRAY)) {
                         chunk.setHeightmap(heightMapType, heightMapsTag.getLongArray(heightMapKey));
@@ -543,7 +543,7 @@ public class ServerLevelPlot extends LevelPlot {
                     chunk.setBlockEntityNbt(blockEntityTag);
                 } else {
                     final BlockPos blockPos = BlockEntity.getPosFromTag(blockEntityTag);
-                    final BlockEntity blockEntity = BlockEntity.loadStatic(blockPos, chunk.getBlockState(blockPos), blockEntityTag, level.registryAccess());
+                    final BlockEntity blockEntity = BlockEntity.loadStatic(blockPos, chunk.getBlockState(blockPos), blockEntityTag);
                     if (blockEntity != null) {
                         chunk.setBlockEntity(blockEntity);
                     }

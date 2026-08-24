@@ -1,38 +1,35 @@
 package dev.ryanhcode.sable;
 
+import com.mojang.logging.LogUtils;
+import dev.ryanhcode.sable.api.sublevel.ClientSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
-import dev.ryanhcode.sable.mixin.config.GameRendererAccessor;
-import dev.ryanhcode.sable.mixinterface.plot.SubLevelContainerHolder;
 import dev.ryanhcode.sable.render.dynamic_shade.SableDynamicDirectionalShading;
-import dev.ryanhcode.sable.render.sky_light_shadow.SableSkyLightShadows;
-import dev.ryanhcode.sable.render.water_occlusion.WaterOcclusionRenderer;
-import dev.ryanhcode.sable.sublevel.ClientSubLevel;
-import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.render.SubLevelRenderer;
 import foundry.veil.Veil;
-import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
 import org.jetbrains.annotations.ApiStatus;
+import org.slf4j.Logger;
 
 import java.util.Arrays;
 
 public final class SableClientConfig {
 
-    public static final ModConfigSpec SPEC;
+    private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final ModConfigSpec.BooleanValue ATTEMPT_UDP_NETWORKING;
-    public static final ModConfigSpec.BooleanValue SUB_LEVEL_DYNAMIC_SHADING;
-    public static final ModConfigSpec.BooleanValue SUB_LEVEL_WATER_OCCLUSION;
-    public static final ModConfigSpec.BooleanValue SUB_LEVEL_SKYLIGHT_SHADOWS;
-    public static final ModConfigSpec.BooleanValue DEBUG_DRAW_LOADED_CHUNKS;
-    public static final ModConfigSpec.DoubleValue INTERPOLATION_DELAY;
-    public static final ModConfigSpec.EnumValue<SubLevelRenderer.SelectedRenderer> SELECTED_RENDERER;
-    public static final ModConfigSpec.DoubleValue ZOOM_SENSITIVITY;
+    public static final ForgeConfigSpec SPEC;
+
+    public static final ForgeConfigSpec.BooleanValue ATTEMPT_UDP_NETWORKING;
+    public static final ForgeConfigSpec.BooleanValue SUB_LEVEL_DYNAMIC_SHADING;
+    public static final ForgeConfigSpec.BooleanValue SUB_LEVEL_WATER_OCCLUSION;
+    public static final ForgeConfigSpec.BooleanValue SUB_LEVEL_SKYLIGHT_SHADOWS;
+    public static final ForgeConfigSpec.BooleanValue DEBUG_DRAW_LOADED_CHUNKS;
+    public static final ForgeConfigSpec.DoubleValue INTERPOLATION_DELAY;
+    public static final ForgeConfigSpec.EnumValue<SubLevelRenderer.SelectedRenderer> SELECTED_RENDERER;
+    public static final ForgeConfigSpec.DoubleValue ZOOM_SENSITIVITY;
 
     static {
-        final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        final ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
 
         SUB_LEVEL_DYNAMIC_SHADING = builder
@@ -40,7 +37,7 @@ public final class SableClientConfig {
                 .define("sub_level_dynamic_shading", true);
         SUB_LEVEL_WATER_OCCLUSION = builder
                 .comment("Whether sub-levels can occlude the water surface")
-                .define("sub_level_water_occlusion", true);
+                .define("sub_level_water_occlusion", false);
         SUB_LEVEL_SKYLIGHT_SHADOWS = builder
                 .comment("Whether sub-levels should cast a shadow on the world")
                 .define("sub_level_skylight_shadows", false);
@@ -67,44 +64,25 @@ public final class SableClientConfig {
 
     @ApiStatus.Internal
     public static void onUpdate(final boolean notify) {
-        boolean reloadShaders = false;
-        boolean reloadChunks = false;
+        final boolean requestedDynamicShading = SUB_LEVEL_DYNAMIC_SHADING.get();
+        final boolean shadingChanged = SableDynamicDirectionalShading.isEnabled() != requestedDynamicShading;
+        SableDynamicDirectionalShading.setIsEnabled(requestedDynamicShading);
+        LOGGER.info("[SABLE-DYNAMIC-SHADE-CONFIG] enabled={} changed={} notify={}",
+                requestedDynamicShading, shadingChanged, notify);
 
-        if (SableDynamicDirectionalShading.isEnabled() != SableClientConfig.SUB_LEVEL_DYNAMIC_SHADING.getAsBoolean()) {
-            SableDynamicDirectionalShading.setIsEnabled(SableClientConfig.SUB_LEVEL_DYNAMIC_SHADING.getAsBoolean());
-            reloadShaders = true;
-            reloadChunks = true;
-        }
-
-        if (SableSkyLightShadows.isEnabled() != SableClientConfig.SUB_LEVEL_SKYLIGHT_SHADOWS.getAsBoolean()) {
-            SableSkyLightShadows.setIsEnabled(SableClientConfig.SUB_LEVEL_SKYLIGHT_SHADOWS.getAsBoolean());
-            reloadShaders = true;
-        }
-
-        if (WaterOcclusionRenderer.isEnabled() != SableClientConfig.SUB_LEVEL_WATER_OCCLUSION.getAsBoolean()) {
-            WaterOcclusionRenderer.setIsEnabled(SableClientConfig.SUB_LEVEL_WATER_OCCLUSION.getAsBoolean());
-            reloadShaders = true;
-        }
-
-        Minecraft.getInstance().execute(() -> SubLevelRenderer.setImpl(SableClientConfig.SELECTED_RENDERER.get()));
-
-        if (notify) {
-            if (reloadShaders) {
-                VeilRenderSystem.renderer().getVanillaShaderCompiler().reload(((GameRendererAccessor) Minecraft.getInstance().gameRenderer).getShaders().values());
+        Minecraft.getInstance().execute(() -> {
+            SubLevelRenderer.setImpl(SableClientConfig.SELECTED_RENDERER.get());
+            if (!notify || !shadingChanged) {
+                return;
             }
 
-            if (reloadChunks) {
-                Minecraft.getInstance().execute(() -> {
-                    VeilRenderSystem.rebuildChunks();
-                    final ClientLevel level = Minecraft.getInstance().level;
-                    if (level != null) {
-                        final SubLevelContainer plotContainer = ((SubLevelContainerHolder) level).sable$getPlotContainer();
-                        for (final SubLevel sublevel : plotContainer.getAllSubLevels()) {
-                            ((ClientSubLevel) sublevel).getRenderData().rebuild();
-                        }
-                    }
-                });
+            final ClientSubLevelContainer container = Minecraft.getInstance().level == null
+                    ? null : SubLevelContainer.getContainer(Minecraft.getInstance().level);
+            if (container != null) {
+                container.getAllSubLevels().forEach(subLevel -> subLevel.getRenderData().rebuild());
+                LOGGER.info("[SABLE-DYNAMIC-SHADE-REBUILD] rebuilt {} loaded sub-level renderers",
+                        container.getAllSubLevels().size());
             }
-        }
+        });
     }
 }

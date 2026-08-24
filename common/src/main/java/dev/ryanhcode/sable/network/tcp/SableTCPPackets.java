@@ -4,11 +4,15 @@ import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.network.packets.ClientboundSableSnapshotDualPacket;
 import dev.ryanhcode.sable.network.packets.ClientboundSableSnapshotInfoDualPacket;
 import dev.ryanhcode.sable.network.packets.tcp.*;
-import foundry.veil.api.network.VeilPacketManager;
+import dev.ryanhcode.sable.network.tcp.SablePacketManager;
 
 public class SableTCPPackets {
 
-    private static final VeilPacketManager PACKET_MANAGER = VeilPacketManager.create(Sable.MOD_ID, "1");
+    private static final SablePacketManager PACKET_MANAGER = SablePacketManager.create(Sable.MOD_ID, "1");
+
+    public static SablePacketManager manager() {
+        return PACKET_MANAGER;
+    }
 
     public static void init() {
         PACKET_MANAGER.registerClientbound(ClientboundSableSnapshotDualPacket.TYPE, ClientboundSableSnapshotDualPacket.CODEC, ClientboundSableSnapshotDualPacket::handle);
@@ -31,10 +35,9 @@ public class SableTCPPackets {
         PACKET_MANAGER.registerClientbound(ClientboundRecentlySplitSubLevelPacket.TYPE, ClientboundRecentlySplitSubLevelPacket.CODEC, ClientboundRecentlySplitSubLevelPacket::handle);
 
         PACKET_MANAGER.registerClientbound(ClientboundSableUDPActivationPacket.TYPE, ClientboundSableUDPActivationPacket.CODEC, ClientboundSableUDPActivationPacket::handle);
-
         PACKET_MANAGER.registerClientbound(ClientboundEnterGizmoPacket.TYPE, ClientboundEnterGizmoPacket.CODEC, ClientboundEnterGizmoPacket::handle);
 
-        PACKET_MANAGER.registerServerbound(ServerboundPunchSubLevelPacket.TYPE, ServerboundPunchSubLevelPacket.CODEC, ServerboundPunchSubLevelPacket::handle);
-        PACKET_MANAGER.registerServerbound(ServerboundGizmoMoveSubLevelPacket.TYPE, ServerboundGizmoMoveSubLevelPacket.CODEC, ServerboundGizmoMoveSubLevelPacket::handle);
+        PACKET_MANAGER.registerServerbound(15, ServerboundPunchSubLevelPacket.TYPE, ServerboundPunchSubLevelPacket.CODEC, ServerboundPunchSubLevelPacket::handle);
+        PACKET_MANAGER.registerServerbound(16, ServerboundGizmoMoveSubLevelPacket.TYPE, ServerboundGizmoMoveSubLevelPacket.CODEC, ServerboundGizmoMoveSubLevelPacket::handle);
     }
 }

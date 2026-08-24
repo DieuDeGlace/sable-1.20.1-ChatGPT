@@ -12,7 +12,6 @@ import dev.ryanhcode.sable.sublevel.plot.LevelPlot;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
-import net.minecraft.client.particle.TerrainParticle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -47,27 +46,24 @@ public abstract class ParticleEngineMixin {
         extension.sable$moveWithInheritedVelocity();
     }
 
-    @Redirect(method = "crack", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/TerrainParticle;setPower(F)Lnet/minecraft/client/particle/Particle;"))
-    private Particle sable$addCrackParticle(final TerrainParticle particle, final float v, @Local(argsOnly = true) final BlockPos pos, @Local final BlockState state) {
-        final Vec3 particlePosition = new Vec3(particle.x, particle.y, particle.z);
+    @Redirect(method = "crack", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;setPower(F)Lnet/minecraft/client/particle/Particle;"))
+    private Particle sable$addCrackParticle(final Particle particle, final float v, @Local(argsOnly = true) final BlockPos pos, @Local final BlockState state) {
+        final ParticleExtension extension = (ParticleExtension) particle;
+        final Vec3 particlePosition = extension.sable$getPosition();
 
         final SubLevel subLevel = Sable.HELPER.getContaining(this.level, particlePosition);
         if (subLevel != null) {
-            final Vec3 velocity = new Vec3(particle.xd, particle.yd, particle.zd);
+            final Vec3 velocity = extension.sable$getVelocity();
             final Vec3 globalVelocity = subLevel.logicalPose().transformNormal(velocity);
 
-            particle.xd = globalVelocity.x;
-            particle.yd = globalVelocity.y;
-            particle.zd = globalVelocity.z;
+            extension.sable$setVelocity(globalVelocity);
 
             particle.setPower(v);
 
-            final Vec3 localVelocity = subLevel.logicalPose().transformNormalInverse(new Vec3(particle.xd, particle.yd, particle.zd));
+            final Vec3 localVelocity = subLevel.logicalPose().transformNormalInverse(extension.sable$getVelocity());
 
-            particle.xd = localVelocity.x;
-            particle.yd = localVelocity.y;
-            particle.zd = localVelocity.z;
-            ((ParticleExtension) particle).sable$setTrackingSubLevel((ClientSubLevel) subLevel, particlePosition);
+            extension.sable$setVelocity(localVelocity);
+            extension.sable$setTrackingSubLevel((ClientSubLevel) subLevel, particlePosition);
 
             return particle;
         } else {

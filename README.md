@@ -1,3 +1,42 @@
+# Sable for Forge 1.20.1
+
+This repository contains an unofficial Forge 1.20.1 adaptation of
+[Sable](https://github.com/ryanhcode/sable), an intrusive library mod that adds
+interactive moving block structures called sub-levels.
+
+The target runtime is fixed to:
+
+- Minecraft 1.20.1
+- Forge 47.4.0
+- Create 6.0.8
+- Flywheel 1.0.5
+- Veil 1.0.0.296
+- Java 17
+
+Sable uses extensive bytecode modification and should be tested carefully in
+large mod packs. Back up worlds before changing mod versions.
+
+## Build for testing
+
+To try the port, clone the repository and run `build.cmd test` on Windows. The
+test JARs will be written to `dist`.
+
+This port is experimental and is provided for testing only. No guarantee is
+made regarding stability or compatibility.
+
+## Test tools
+
+The test command also builds the optional Sable Test Tools mod, which provides
+the selection wand, gravity gun and test commands. See
+[docs/TESTING.md](docs/TESTING.md) before using it.
+
+---
+
+## Upstream README (original)
+
+The following is the original upstream Sable README, preserved verbatim from
+upstream commit `925c312a2019908e20220b814ef55b768aa97314`.
+
 <p align="center"><img src="./.idea/icon.png" alt="Logo" width="200"></p>
 <h1 align="center">Sable<br>
 <div align="center">

@@ -1,0 +1,16 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="sable_validation"
+version="1"
+displayName="Sable Port Validation"
+description='''Development-only validation fixtures for the Sable Forge 1.20.1 port.'''
+
+[[dependencies.sable_validation]]
+modId="sable"
+mandatory=true
+versionRange="[2.0.5-port.1,)"
+ordering="AFTER"
+side="BOTH"

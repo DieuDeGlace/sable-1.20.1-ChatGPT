@@ -7,7 +7,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.client.gui.screens.OptionsScreen;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -32,14 +32,13 @@ public abstract class OptionsScreenMixin extends Screen {
             return original;
         }
 
-        final LinearLayout layout = LinearLayout.vertical();
+        final LinearLayout layout = new LinearLayout(150, 45, LinearLayout.Orientation.VERTICAL);
 
         final Button sableButton = Button.builder(SubLevelSettingsScreen.TITLE, (event) -> {
             this.minecraft.setScreen(new SubLevelSettingsScreen(this, this.options, SubLevelSettingsScreen.TITLE));
         }).pos(0, 30).size(150, 20).build();
 
-        layout.addChild(original);
-        layout.spacing(5);
+        layout.addChild(original, layout.newChildLayoutSettings().paddingBottom(5));
         layout.addChild(sableButton);
         return layout;
     }

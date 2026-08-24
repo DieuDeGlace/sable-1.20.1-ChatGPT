@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "#forge:stone",
+    "#forge:cobblestone",
+    "minecraft:blackstone",
+    "minecraft:basalt",
+    "minecraft:smooth_basalt",
+    "minecraft:polished_basalt",
+    "minecraft:obsidian",
+    "minecraft:crying_obsidian"
+  ]
+}

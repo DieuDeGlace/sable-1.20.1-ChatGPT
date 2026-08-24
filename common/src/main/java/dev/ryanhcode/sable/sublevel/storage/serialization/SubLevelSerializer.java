@@ -179,12 +179,12 @@ public class SubLevelSerializer {
 
         if (tag.contains("linear_velocity")) {
             linearVelocity = SableNBTUtils.readVector3d(tag.getCompound("linear_velocity"))
-                    .mul(SableConfig.VELOCITY_RETAINED_ON_LOAD.getAsDouble());
+                    .mul(SableConfig.VELOCITY_RETAINED_ON_LOAD.get());
         }
 
         if (tag.contains("angular_velocity")) {
             angularVelocity = SableNBTUtils.readVector3d(tag.getCompound("angular_velocity"))
-                    .mul(SableConfig.VELOCITY_RETAINED_ON_LOAD.getAsDouble());
+                    .mul(SableConfig.VELOCITY_RETAINED_ON_LOAD.get());
         }
 
         physicsSystem.getPipeline().addLinearAndAngularVelocity(subLevel, linearVelocity, angularVelocity);

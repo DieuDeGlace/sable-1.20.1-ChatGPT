@@ -1,7 +1,6 @@
 package dev.ryanhcode.sable.index;
 
 import com.google.common.collect.ImmutableMap;
-import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -21,18 +20,21 @@ public class SableAttributes {
     /**
      * Assigned by loader-specific code
      */
-    public static Holder<Attribute> PUNCH_STRENGTH;
-    public static Holder<Attribute> PUNCH_COOLDOWN;
+    public static Attribute PUNCH_STRENGTH;
+    public static Attribute PUNCH_COOLDOWN;
 
     public static void register() {
 
         final AttributeSupplier supplier = DefaultAttributes.getSupplier(EntityType.PLAYER);
 
-        final Map<Holder<Attribute>, AttributeInstance> additionalInstances = AttributeSupplier.builder().add(PUNCH_STRENGTH).add(PUNCH_COOLDOWN).build().instances;
+        final Map<Attribute, AttributeInstance> additionalInstances = AttributeSupplier.builder()
+                .add(PUNCH_STRENGTH)
+                .add(PUNCH_COOLDOWN)
+                .build().instances;
 
         // java was tweaking with generics
         //noinspection unchecked,rawtypes
-        supplier.instances = (Map<Holder<Attribute>, AttributeInstance>) (ImmutableMap) ImmutableMap.builder()
+        supplier.instances = (Map<Attribute, AttributeInstance>) (ImmutableMap) ImmutableMap.builder()
                 .putAll(supplier.instances)
                 .putAll(additionalInstances)
                 .buildKeepingLast();

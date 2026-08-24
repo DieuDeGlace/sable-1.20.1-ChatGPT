@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
-import dev.ryanhcode.sable.Sable;
+import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.network.packets.tcp.ClientboundDimensionPhysicsPacket;
 import net.minecraft.core.registries.Registries;
@@ -21,8 +21,10 @@ import org.joml.Vector3fc;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
 
 public class DimensionPhysicsData {
+    private static final Logger LOGGER = LogUtils.getLogger();
     static final Map<ResourceKey<Level>, DimensionPhysics> DIMENSION_PHYSICS_DATA = new HashMap<>();
     static final Map<ResourceKey<Level>, DimensionPhysics> DEFAULT_DIMENSION_PHYSICS_DATA = new HashMap<>();
 
@@ -116,7 +118,7 @@ public class DimensionPhysicsData {
         public static final ReloadListener INSTANCE = new ReloadListener();
 
         public static final String NAME = "dimension_physics";
-        public static final ResourceLocation ID = Sable.sablePath(NAME);
+        public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath("sable", NAME);
 
         public ReloadListener() {
             super(ReloadListener.GSON, NAME);
@@ -131,15 +133,16 @@ public class DimensionPhysicsData {
                     final DataResult<DimensionPhysics> dataResult = DimensionPhysics.CODEC.parse(JsonOps.INSTANCE, entry.getValue());
 
                     if (dataResult.error().isPresent()) {
-                        Sable.LOGGER.error(String.valueOf(dataResult.error().get()));
+                        LOGGER.error(String.valueOf(dataResult.error().get()));
                     }
 
-                    final DimensionPhysics dimensionPhysics = dataResult.getOrThrow();
+                    final DimensionPhysics dimensionPhysics = dataResult.result().orElseThrow(() ->
+                            new IllegalStateException(dataResult.error().orElseThrow().message()));
                     final ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, dimensionPhysics.dimension());
 
                     addPhysicsWithPriority(dimension, dimensionPhysics);
                 } catch (final Exception e) {
-                    Sable.LOGGER.error("Error while loading dimension data \"{}\" : {} ", entry.getKey(), e.getMessage());
+                    LOGGER.error("Error while loading dimension data \"{}\" : {} ", entry.getKey(), e.getMessage());
                 }
             }
         }

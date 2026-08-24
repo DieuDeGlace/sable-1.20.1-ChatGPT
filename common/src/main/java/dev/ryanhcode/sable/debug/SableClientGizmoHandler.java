@@ -6,11 +6,9 @@ import dev.ryanhcode.sable.companion.math.Pose3dc;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
-import foundry.veil.api.client.render.MatrixStack;
 import foundry.veil.api.event.VeilRenderLevelStageEvent;
 import foundry.veil.platform.VeilEventPlatform;
 import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -40,7 +38,7 @@ public class SableClientGizmoHandler {
     private @Nullable GizmoSelection selection;
 
     public void init() {
-        VeilEventPlatform.INSTANCE.onVeilRenderLevelStage(this::onRenderStage);
+        VeilEventPlatform.INSTANCE.onVeilRenderTypeStageRender(this::onRenderStage);
     }
 
     public static Vec3 getRay(final Matrix4fc projectionMatrix, final float normalizedMouseX, final float normalizedMouseY) {
@@ -69,11 +67,10 @@ public class SableClientGizmoHandler {
     private void onRenderStage(final VeilRenderLevelStageEvent.Stage stage,
                                final LevelRenderer levelRenderer,
                                final MultiBufferSource.BufferSource bufferSource,
-                               final MatrixStack matrixStack,
-                               final Matrix4fc modelViewMat,
-                               final Matrix4fc projMat,
+                               final PoseStack renderPoseStack,
+                               final Matrix4f modelViewMat,
                                final int renderTicks,
-                               final DeltaTracker deltaTracker,
+                               final float partialTicks,
                                final Camera camera,
                                final Frustum frustum) {
 
@@ -82,8 +79,6 @@ public class SableClientGizmoHandler {
         }
 
         if (!this.enabled) return;
-
-        final float partialTicks = deltaTracker.getGameTimeDeltaPartialTick(false);
 
         final Minecraft minecraft = Minecraft.getInstance();
         final ClientLevel level = minecraft.level;

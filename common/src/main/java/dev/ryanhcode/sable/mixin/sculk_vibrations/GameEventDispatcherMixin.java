@@ -12,7 +12,6 @@ import dev.ryanhcode.sable.companion.math.BoundingBox3dc;
 import dev.ryanhcode.sable.companion.math.BoundingBox3i;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.gameevent.GameEvent;
@@ -33,7 +32,7 @@ public class GameEventDispatcherMixin {
     private ServerLevel level;
 
     @Inject(method = "post", at = @At(value = "NEW", target = "java/util/ArrayList"))
-    private void sable$useBBIntersection(final Holder<GameEvent> gameEvent, final Vec3 pos, final GameEvent.Context context, final CallbackInfo ci, @Share("bb") final LocalRef<BoundingBox3ic> bbRef,
+    private void sable$useBBIntersection(final GameEvent gameEvent, final Vec3 pos, final GameEvent.Context context, final CallbackInfo ci, @Share("bb") final LocalRef<BoundingBox3ic> bbRef,
                                    @Local(ordinal = 1) final LocalIntRef x1, @Local(ordinal = 2) final LocalIntRef y1, @Local(ordinal = 3) final LocalIntRef z1,
                                    @Local(ordinal = 4) final LocalIntRef x2, @Local(ordinal = 5) final LocalIntRef y2, @Local(ordinal = 6) final LocalIntRef z2) {
         final BoundingBox3ic bb = bbRef.get();
@@ -48,7 +47,7 @@ public class GameEventDispatcherMixin {
     }
 
     @WrapMethod(method = "post")
-    private void sable$visitShipListeners(final Holder<GameEvent> gameEvent, final Vec3 pos, final GameEvent.Context context, final Operation<Void> original, @Share("bb") final LocalRef<BoundingBox3ic> bbRef) {
+    private void sable$visitShipListeners(final GameEvent gameEvent, final Vec3 pos, final GameEvent.Context context, final Operation<Void> original, @Share("bb") final LocalRef<BoundingBox3ic> bbRef) {
         final Vec3 globalPos = Sable.HELPER.projectOutOfSubLevel(this.level, pos);
         original.call(gameEvent, globalPos, context);
         if (bbRef.get() != null) {
@@ -56,7 +55,7 @@ public class GameEventDispatcherMixin {
         }
 
         // For the first non-nested call, propagate the call to sub-levels
-        final int radius = gameEvent.value().notificationRadius();
+        final int radius = gameEvent.getNotificationRadius();
         final BoundingBox3dc sourceBB = new BoundingBox3d(BlockPos.containing(globalPos)).expand(radius);
         final BoundingBox3i intersection = new BoundingBox3i();
 

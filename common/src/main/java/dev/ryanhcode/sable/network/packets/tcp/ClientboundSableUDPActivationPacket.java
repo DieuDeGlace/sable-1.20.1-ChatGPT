@@ -6,24 +6,23 @@ import dev.ryanhcode.sable.mixinterface.udp.ConnectionExtension;
 import dev.ryanhcode.sable.network.packets.udp.SableUDPAuthenticationPacket;
 import dev.ryanhcode.sable.network.tcp.SableTCPPacket;
 import dev.ryanhcode.sable.network.udp.AddressedSableUDPPacket;
-import foundry.veil.api.network.handler.PacketContext;
+import dev.ryanhcode.sable.network.tcp.PacketContext;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.Connection;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.tcp.CustomPacketPayload;
 
 import java.net.InetSocketAddress;
 import java.util.UUID;
 
 public record ClientboundSableUDPActivationPacket(UUID uuid) implements SableTCPPacket {
 
-    public static final Type<ClientboundSableUDPActivationPacket> TYPE = new Type<>(Sable.sablePath("udp_activation"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundSableUDPActivationPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ClientboundSableUDPActivationPacket::read);
+    public static final Type<ClientboundSableUDPActivationPacket> TYPE = new Type<>(Sable.sablePath("udp_activation"), ClientboundSableUDPActivationPacket.class);
+    public static final StreamCodec<FriendlyByteBuf, ClientboundSableUDPActivationPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ClientboundSableUDPActivationPacket::read);
 
     private void write(final FriendlyByteBuf buf) {
         buf.writeUUID(this.uuid);

@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "#forge:storage_blocks",
+    "minecraft:dried_kelp_block",
+    "minecraft:hay_block",
+    "#minecraft:anvil",
+    "minecraft:bone_block",
+    "minecraft:slime_block"
+  ],
+  "remove": [
+    { "id": "create:cardboard_block", "required": false },
+    "minecraft:copper_block",
+    "minecraft:slime_block",
+    "minecraft:bone_block"
+  ]
+}

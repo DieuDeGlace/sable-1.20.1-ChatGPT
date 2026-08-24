@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.PathNavigationRegion;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.PathFinder;
@@ -54,6 +55,17 @@ public abstract class PathNavigationMixin {
 
     @Shadow
     protected abstract void resetStuckTimeout();
+
+    @Inject(method = "isStableDestination", at = @At("HEAD"), cancellable = true)
+    private void sable$rejectUnallocatedPlotDestination(final BlockPos position,
+                                                         final CallbackInfoReturnable<Boolean> cir) {
+        final SubLevel trackingSubLevel = Sable.HELPER.getTrackingSubLevel(this.mob);
+        if (trackingSubLevel != null
+                && trackingSubLevel.getPlot().contains(new ChunkPos(position))
+                && trackingSubLevel.getPlot().getChunk(new ChunkPos(position)) == null) {
+            cir.setReturnValue(false);
+        }
+    }
 
     @Inject(method = "createPath(Ljava/util/Set;IZIF)Lnet/minecraft/world/level/pathfinder/Path;", at = @At("HEAD"), cancellable = true)
     private void sable$createPath(final Set<BlockPos> globalSet, final int i, final boolean bl, final int j, final float f, final CallbackInfoReturnable<Path> cir) {

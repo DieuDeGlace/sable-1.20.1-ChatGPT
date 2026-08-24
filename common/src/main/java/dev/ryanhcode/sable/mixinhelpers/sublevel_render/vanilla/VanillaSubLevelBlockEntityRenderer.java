@@ -48,7 +48,7 @@ public class VanillaSubLevelBlockEntityRenderer implements SubLevelRenderDispatc
             final int progress = destructionProgresses.last().getProgress();
             if (progress >= 0) {
                 final PoseStack.Pose posestack$pose = poseStack.last();
-                final VertexConsumer vertexconsumer = new SheetedDecalTextureGenerator(this.renderBuffers.crumblingBufferSource().getBuffer(ModelBakery.DESTROY_TYPES.get(progress)), posestack$pose, 1.0F);
+                final VertexConsumer vertexconsumer = new SheetedDecalTextureGenerator(this.renderBuffers.crumblingBufferSource().getBuffer(ModelBakery.DESTROY_TYPES.get(progress)), posestack$pose.pose(), posestack$pose.normal(), 1.0F);
                 source = type -> {
                     final VertexConsumer consumer = this.renderBuffers.bufferSource().getBuffer(type);
                     return type.affectsCrumbling() ? VertexMultiConsumer.create(vertexconsumer, consumer) : consumer;

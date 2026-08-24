@@ -7,11 +7,10 @@ import dev.ryanhcode.sable.network.tcp.SableTCPPacket;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.util.SableBufferUtils;
-import foundry.veil.api.network.handler.PacketContext;
+import dev.ryanhcode.sable.network.tcp.PacketContext;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.tcp.CustomPacketPayload;
 import net.minecraft.server.level.ServerLevel;
 import org.joml.Vector3d;
 
@@ -25,8 +24,8 @@ import java.util.UUID;
  */
 public record ServerboundGizmoMoveSubLevelPacket(UUID subLevel, Vector3d position) implements SableTCPPacket {
 
-    public static final Type<ServerboundGizmoMoveSubLevelPacket> TYPE = new Type<>(Sable.sablePath("gizmo_move_sub_level"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, ServerboundGizmoMoveSubLevelPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ServerboundGizmoMoveSubLevelPacket::read);
+    public static final Type<ServerboundGizmoMoveSubLevelPacket> TYPE = new Type<>(Sable.sablePath("gizmo_move_sub_level"), ServerboundGizmoMoveSubLevelPacket.class);
+    public static final StreamCodec<FriendlyByteBuf, ServerboundGizmoMoveSubLevelPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ServerboundGizmoMoveSubLevelPacket::read);
 
     private static ServerboundGizmoMoveSubLevelPacket read(final FriendlyByteBuf buf) {
         return new ServerboundGizmoMoveSubLevelPacket(

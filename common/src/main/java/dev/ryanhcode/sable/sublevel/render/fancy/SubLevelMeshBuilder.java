@@ -108,7 +108,7 @@ public class SubLevelMeshBuilder {
                             break;
                         }
 
-                        final BakedQuad quad = culledQuads.getFirst();
+                        final BakedQuad quad = culledQuads.get(0);
                         if (!isAxisAligned(quad)) {
                             valid = false;
                             break;

@@ -33,6 +33,6 @@ public class PhysicsConfigData {
     public int substepsPerTick = 2;
 
     public void updateFromConfig() {
-        this.substepsPerTick = SableServerConfig.SUB_LEVEL_SUBSTEPS_PER_TICK.getAsInt();
+        this.substepsPerTick = SableServerConfig.SUB_LEVEL_SUBSTEPS_PER_TICK.get();
     }
 }

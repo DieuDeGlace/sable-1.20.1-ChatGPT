@@ -1,5 +1,6 @@
 package dev.ryanhcode.sable.sublevel.plot;
 
+import com.mojang.datafixers.util.Either;
 import dev.ryanhcode.sable.companion.math.BoundingBox3i;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import net.minecraft.Util;
@@ -12,7 +13,6 @@ import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,6 +25,7 @@ import java.util.concurrent.Executor;
  */
 public class PlotChunkHolder extends ChunkHolder {
     private final LevelChunk chunk;
+    private final CompletableFuture<Either<LevelChunk, ChunkLoadingFailure>> completedChunkFuture;
     private final HeatDataChunkSection[] heatSections;
 
     private @Nullable BoundingBox3i boundingBox;
@@ -34,17 +35,15 @@ public class PlotChunkHolder extends ChunkHolder {
      * Builds a bounding box for the chunk if non-empty.
      */
     public PlotChunkHolder(final LevelChunk chunk, final ChunkPos pos, final LevelHeightAccessor levelHeightAccessor, final LevelLightEngine levelLightEngine, final LevelChangeListener levelChangeListener, final PlayerProvider playerProvider) {
-        super(pos, ChunkLevel.ENTITY_TICKING_LEVEL, levelHeightAccessor, levelLightEngine, levelChangeListener, playerProvider);
+        super(pos, ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING), levelHeightAccessor, levelLightEngine, levelChangeListener, playerProvider);
 
         if (chunk == null) {
             throw Util.pauseInIde(new IllegalStateException("Chunk not found in plot container"));
         }
 
         this.chunk = chunk;
+        this.completedChunkFuture = CompletableFuture.completedFuture(Either.left(chunk));
         this.heatSections = new HeatDataChunkSection[chunk.getSectionsCount()];
-        this.tickingChunkFuture = CompletableFuture.completedFuture(ChunkResult.of(chunk));
-        this.entityTickingChunkFuture = CompletableFuture.completedFuture(ChunkResult.of(chunk));
-        this.fullChunkFuture = CompletableFuture.completedFuture(ChunkResult.of(chunk));
 
         if (!this.chunk.isEmpty()) {
             this.buildBoundingBox();
@@ -138,13 +137,23 @@ public class PlotChunkHolder extends ChunkHolder {
 
     }
 
-    @Override
-    public boolean isReadyForSaving() {
-        return false;
-    }
-
     public LevelChunk getChunk() {
         return this.chunk;
+    }
+
+    @Override
+    public CompletableFuture<Either<LevelChunk, ChunkLoadingFailure>> getTickingChunkFuture() {
+        return this.completedChunkFuture;
+    }
+
+    @Override
+    public CompletableFuture<Either<LevelChunk, ChunkLoadingFailure>> getEntityTickingChunkFuture() {
+        return this.completedChunkFuture;
+    }
+
+    @Override
+    public CompletableFuture<Either<LevelChunk, ChunkLoadingFailure>> getFullChunkFuture() {
+        return this.completedChunkFuture;
     }
 
     /**
@@ -152,11 +161,6 @@ public class PlotChunkHolder extends ChunkHolder {
      */
     public BoundingBox3ic getBoundingBox() {
         return this.boundingBox;
-    }
-
-    @Override
-    public void rescheduleChunkTask(final ChunkMap chunkMap, @Nullable final ChunkStatus chunkStatus) {
-        // no-op, don't make generation tasks
     }
 
     /**

@@ -4,8 +4,9 @@ import com.mojang.datafixers.kinds.Applicative;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.codec.ByteBufCodecs;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.util.SableCodecUtil;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.level.Level;
@@ -25,17 +26,17 @@ public record DimensionPhysics(ResourceLocation dimension, int priority, Optiona
     public static final Codec<DimensionPhysics> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             ResourceLocation.CODEC.fieldOf("dimension").forGetter(DimensionPhysics::dimension),
             Codec.intRange(0, Integer.MAX_VALUE).optionalFieldOf("priority", 1000).forGetter(DimensionPhysics::priority),
-            Codec.optionalField("universal_drag", Codec.FLOAT, false).forGetter(DimensionPhysics::universalDrag),
-            Codec.optionalField("base_gravity", ExtraCodecs.VECTOR3F, false).forGetter(DimensionPhysics::baseGravity),
-            Codec.optionalField("base_pressure", Codec.DOUBLE, false).forGetter(DimensionPhysics::basePressure),
-            Codec.optionalField("pressure_function", BezierResourceFunction.CODEC, false).forGetter(DimensionPhysics::pressureFunction),
-            Codec.optionalField("magnetic_north", ExtraCodecs.VECTOR3F, false).forGetter(DimensionPhysics::magneticNorth),
+            SableCodecUtil.strictOptionalField("universal_drag", Codec.FLOAT).forGetter(DimensionPhysics::universalDrag),
+            SableCodecUtil.strictOptionalField("base_gravity", ExtraCodecs.VECTOR3F).forGetter(DimensionPhysics::baseGravity),
+            SableCodecUtil.strictOptionalField("base_pressure", Codec.DOUBLE).forGetter(DimensionPhysics::basePressure),
+            SableCodecUtil.strictOptionalField("pressure_function", BezierResourceFunction.CODEC).forGetter(DimensionPhysics::pressureFunction),
+            SableCodecUtil.strictOptionalField("magnetic_north", ExtraCodecs.VECTOR3F).forGetter(DimensionPhysics::magneticNorth),
             Codec.BOOL.optionalFieldOf("ignore_chunks", false).forGetter(DimensionPhysics::ignoreChunks)
     ).apply(Applicative.unbox(instance), DimensionPhysics::new));
 
     public static final StreamCodec<ByteBuf, DimensionPhysics> STREAM_CODEC = StreamCodec.ofMember(
             (dim, buf) -> {
-                ResourceLocation.STREAM_CODEC.encode(buf, dim.dimension);
+                ByteBufCodecs.RESOURCE_LOCATION.encode(buf, dim.dimension);
                 ByteBufCodecs.INT.encode(buf, dim.priority);
                 ByteBufCodecs.FLOAT.apply(ByteBufCodecs::optional).encode(buf, dim.universalDrag);
                 ByteBufCodecs.VECTOR3F.apply(ByteBufCodecs::optional).encode(buf, dim.baseGravity);
@@ -45,7 +46,7 @@ public record DimensionPhysics(ResourceLocation dimension, int priority, Optiona
                 ByteBufCodecs.BOOL.encode(buf, dim.ignoreChunks);
             },
             buf -> new DimensionPhysics(
-                ResourceLocation.STREAM_CODEC.decode(buf),
+                ByteBufCodecs.RESOURCE_LOCATION.decode(buf),
                 ByteBufCodecs.INT.decode(buf),
                 ByteBufCodecs.FLOAT.apply(ByteBufCodecs::optional).decode(buf),
                 ByteBufCodecs.VECTOR3F.apply(ByteBufCodecs::optional).decode(buf),

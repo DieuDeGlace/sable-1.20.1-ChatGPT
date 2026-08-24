@@ -5,13 +5,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
-import net.minecraft.network.ProtocolSwapHandler;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 
 import java.io.IOException;
 import java.util.List;
 
-public class SableUDPPacketDecoder extends MessageToMessageDecoder<DatagramPacket> implements ProtocolSwapHandler {
+public class SableUDPPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
     public SableUDPPacketDecoder() {
         super(DatagramPacket.class);
@@ -41,7 +40,7 @@ public class SableUDPPacketDecoder extends MessageToMessageDecoder<DatagramPacke
             final SableUDPPacket packet;
 
             try {
-                packet = packetType.create(new RegistryFriendlyByteBuf(byteBuf, null));
+                packet = packetType.create(new FriendlyByteBuf(byteBuf));
             } catch (final Exception e) {
                 Sable.LOGGER.error("Failed to decode UDP packet of type {} from {}", packetType, msg.sender(), e);
                 return;

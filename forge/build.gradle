@@ -1,0 +1,1017 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev.legacyforge'
+}
+
+configurations {
+    veilSlim
+}
+
+def patchVeilForNamedDev = tasks.register('patchVeilForNamedDev', PatchVeilForNamedDev) {
+    dependsOn tasks.named('createMinecraftArtifacts')
+    inputJar = layout.file(configurations.veilSlim.elements.map { files ->
+        if (files.size() != 1) {
+            throw new GradleException("Expected one Veil slim artifact, found ${files.size()}")
+        }
+        files.iterator().next().asFile
+    })
+    mappings = layout.buildDirectory.file('moddev/artifacts/intermediateToNamed.srg')
+    outputJar = layout.buildDirectory.file("devlibs/Veil-forge-${minecraft_version}-${veil_version}-named-dev.jar")
+}
+
+group = rootProject.group
+version = rootProject.version
+
+base {
+    archivesName = "sable-forge-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
+}
+
+sourceSets {
+    main {
+        java {
+            setSrcDirs(['src/port/java', '../common/src/main/java'])
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/udp'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/entity_rotations_and_riding'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/entity_tracking'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/entity_ai'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/projectile'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/tnt_jumps'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/arrows_hit_blocks'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/trident'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/falling_block'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/parrot'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/entity_aabb_lookup'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/entity_interaction'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/entity_kicking'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/entity/entities_in_blocks'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/interaction_distance'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixin/camera/camera_rotation'
+            srcDir '../common/src/main/java/dev/ryanhcode/sable/mixinhelpers/block_outline_render'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/camera_rotation'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/block_outline_render'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/entities_stick_sublevels/effects'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/sound'
+            // M7 Create 6.0.8 server/common compatibility batch. These are
+            // unchanged upstream sources compiled from the preserved loader tree.
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/fans_provide_force'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/sails_providing_lift'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/impact'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/belt'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/entity_falls_on_block'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/chain_conveyor'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/display_link'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/turntable'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/vertical_gearbox'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/crushing_wheel'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/airflow'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/create'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/create'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/compatibility/flywheel'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/flywheel'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/flywheel'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/physics/callback'
+            srcDir '../sable_companion/src/main/java'
+            srcDir '../sable_rapier/src/main/java'
+            exclude '**/sublevel/water_occlusion/ClientWaterOcclusionContainer.java'
+            // Keep verified upstream groups at their original paths so later
+            // Sable updates remain diffable; target-adapted mixins live under
+            // forge/src/port/java/dev/ryanhcode/sable/admitted.
+            exclude { element ->
+                def path = element.file.path.replace('\\', '/')
+                def selectedCreate = path.contains('/neoforge/mixin/compatibility/create/')
+                        || path.contains('/neoforge/mixinhelper/compatibility/create/')
+                        || path.contains('/neoforge/mixinterface/compatibility/create/')
+                        || path.contains('/neoforge/mixin/admitted/')
+                selectedCreate = selectedCreate && !path.endsWith('/neoforge/mixin/compatibility/create/flywheel/FlywheelBlockEntityMixin.java')
+                selectedCreate = selectedCreate
+                        || path.contains('/neoforge/compatibility/flywheel/')
+                        || path.contains('/neoforge/mixin/compatibility/flywheel/')
+                        || path.contains('/neoforge/mixinhelper/compatibility/flywheel/')
+                        || path.contains('/neoforge/mixinterface/compatibility/flywheel/')
+                selectedCreate = selectedCreate || path.contains('/neoforge/mixin/compatibility/create/fans_provide_force/')
+                        || path.contains('/neoforge/mixin/compatibility/create/sails_providing_lift/')
+                        || path.contains('/neoforge/mixin/compatibility/create/impact/')
+                        || path.endsWith('/neoforge/mixin/compatibility/create/belt/BeltBlockMixin.java')
+                        || path.contains('/neoforge/mixin/compatibility/create/entity_falls_on_block/')
+                        || path.endsWith('/neoforge/mixin/compatibility/create/chain_conveyor/ChainConveyorBlockMixin.java')
+                        || path.endsWith('/neoforge/mixin/compatibility/create/display_link/DisplayLinkBlockMixin.java')
+                        || path.contains('/neoforge/mixin/compatibility/create/turntable/')
+                        || path.contains('/neoforge/mixin/compatibility/create/vertical_gearbox/')
+                        || path.contains('/neoforge/mixin/compatibility/create/crushing_wheel/')
+                        || path.endsWith('/neoforge/mixin/compatibility/create/airflow/AirCurrentMixin.java')
+                selectedCreate = selectedCreate
+                        || path.contains('/neoforge/mixin/camera_rotation/')
+                        || path.contains('/neoforge/mixin/block_outline_render/')
+                        || path.contains('/neoforge/mixin/entities_stick_sublevels/effects/')
+                        || path.contains('/neoforge/mixin/sound/')
+                        || path.contains('/neoforge/mixin/dynamic_directional_shading/')
+                def selectedVanilla = path.contains('/mixin/block_placement/')
+                        || path.contains('/mixin/chunk_container_replacement/')
+                        || path.contains('/mixin/command/') || path.contains('/mixin/conduit/')
+                        || path.contains('/mixin/death_message/')
+                        || path.contains('/mixin/entity/entity_aabb_lookup/')
+                        || path.contains('/mixin/entity/entity_swimming/')
+                        || path.contains('/mixin/entity/entity_unloading/')
+                        || path.contains('/mixin/entity/teleport_players/')
+                        || path.contains('/mixin/entity/entity_sublevel_collision/')
+                        || path.contains('/mixin/extension/') || path.contains('/mixin/fluids_on_sub_levels/')
+                        || path.contains('/mixin/impact/') || path.contains('/mixin/physics/')
+                        || path.contains('/mixin/plot/') || path.contains('/mixin/portal/')
+                        || path.contains('/mixin/prevent_freezing/') || path.contains('/mixin/prevent_overgrowth/')
+                        || path.contains('/mixin/punching/') || path.contains('/mixin/sign_interaction/')
+                        || path.contains('/mixin/sky_light_shadow/') || path.contains('/mixin/stop_lightning/')
+                        || path.contains('/mixin/stop_rain/') || path.contains('/mixin/toast/')
+                        || path.contains('/mixin/tracking_points/') || path.contains('/mixin/world_border/')
+                        || path.contains('/mixin/player_standup/')
+                def selectedTargetRenderAdapter = path.contains('/forge/src/port/java/dev/ryanhcode/sable/mixin/port/sublevel_render/')
+                def excludedSource = path.endsWith('/mixin/entity/entity_aabb_lookup/ClientLevelMixin.java')
+                        || path.endsWith('/mixin/interaction_distance/PlayerMixin.java')
+                        || (path.contains('/compatibility/') && !selectedCreate)
+                        || (path.contains('/mixin/')
+                        && !selectedCreate
+                        && !selectedTargetRenderAdapter
+                        && !path.contains('/neoforge/mixin/admitted/')
+                        && !path.contains('/mixin/udp/')
+                        && !path.contains('entity_rotations_and_riding')
+                        && !path.contains('/mixin/entity/entity_tracking/')
+                        && !path.contains('/mixin/entity/entity_ai/')
+                        && !path.contains('/mixin/entity/projectile/')
+                        && !path.contains('/mixin/entity/tnt_jumps/')
+                        && !path.contains('/mixin/entity/arrows_hit_blocks/')
+                        && !path.contains('/mixin/entity/trident/')
+                        && !path.contains('/mixin/entity/falling_block/')
+                        && !path.contains('/mixin/entity/parrot/')
+                        && !path.contains('/mixin/entity/entity_aabb_lookup/')
+                        && !path.contains('/mixin/entity/entity_interaction/')
+                        && !path.contains('/mixin/entity/entity_kicking/')
+                        && !path.contains('/mixin/entity/entities_in_blocks/')
+                        && !path.contains('/mixin/interaction_distance/')
+                        && !path.contains('/mixin/camera/camera_rotation/')
+                        && !path.contains('/mixin/dynamic_directional_shading/')
+                        && !path.contains('/mixin/sublevel_render/impl/embeddium/')
+                        && !path.contains('/mixin/block_placement/')
+                        && !path.contains('/mixin/chunk_container_replacement/')
+                        && !path.contains('/mixin/command/') && !path.contains('/mixin/conduit/')
+                        && !path.contains('/mixin/death_message/')
+                        && !path.contains('/mixin/entity/entity_aabb_lookup/')
+                        && !path.contains('/mixin/entity/entity_swimming/')
+                        && !path.contains('/mixin/entity/entity_unloading/')
+                        && !path.contains('/mixin/entity/teleport_players/')
+                        && !path.contains('/mixin/entity/entity_sublevel_collision/')
+                        && !path.contains('/mixin/extension/') && !path.contains('/mixin/fluids_on_sub_levels/')
+                        && !path.contains('/mixin/impact/') && !path.contains('/mixin/physics/')
+                        && !path.contains('/mixin/plot/') && !path.contains('/mixin/portal/')
+                        && !path.contains('/mixin/prevent_freezing/') && !path.contains('/mixin/prevent_overgrowth/')
+                        && !path.contains('/mixin/punching/') && !path.contains('/mixin/sign_interaction/')
+                        && !path.contains('/mixin/sky_light_shadow/') && !path.contains('/mixin/stop_lightning/')
+                        && !path.contains('/mixin/stop_rain/') && !path.contains('/mixin/toast/')
+                        && !path.contains('/mixin/tracking_points/') && !path.contains('/mixin/world_border/')
+                        && !path.contains('/mixin/player_standup/'))
+                excludedSource
+            }
+            exclude '**/mixin/interaction_distance/PlayerMixin.java'
+            exclude '**/sublevel/storage/debug/**'
+            exclude '**/sound/**'
+            exclude '**/render/fancy/**'
+            // Veil 1.20 uses resource shader modifiers instead of the 1.21
+            // Java shader-preprocessor registration API. Keep the upstream
+            // state and vertex adapter, excluding only the incompatible class.
+            exclude '**/render/dynamic_shade/SableDynamicDirectionalShadingPreProcessor.java'
+            exclude '**/render/sky_light_shadow/**'
+            exclude '**/render/water_occlusion/**'
+            exclude '**/render/region/**'
+            exclude '**/sublevel/render/dispatcher/FancySubLevelRenderDispatcher.java'
+            exclude '**/sublevel/render/dispatcher/ReachAroundSubLevelRenderDispatcher.java'
+            exclude '**/sublevel/render/dispatcher/SubLevelTextureCache.java'
+            exclude { element ->
+                def path = element.file.path.replace('\\', '/')
+                path.contains('/mixinhelper/compatibility/')
+                        && !path.contains('/mixinhelper/compatibility/create/')
+                        && !path.contains('/mixinhelper/compatibility/flywheel/')
+            }
+            exclude { element ->
+                def path = element.file.path.replace('\\', '/')
+                path.contains('/mixinhelpers/compatibility/')
+                        && !path.contains('/mixinhelpers/compatibility/create/')
+                        && !path.contains('/mixinhelpers/compatibility/flywheel/')
+            }
+            exclude '**/mixinhelpers/loaded_chunk_debug/**'
+            exclude '**/mixinhelpers/block_outline_render/**'
+            exclude '**/mixinhelpers/entity/sublevels_block_sky/**'
+            exclude '**/mixinhelpers/entity/entity_rendering/shadows/**'
+            exclude '**/config/SubLevelSettingsScreen.java'
+        }
+        resources {
+            srcDir '../common/src/main/resources'
+            srcDir '../sable_rapier/src/main/resources'
+            exclude 'META-INF/accesstransformer.cfg'
+            exclude 'META-INF/services/dev.ryanhcode.sable.platform.SableEventPlatform'
+            exclude 'META-INF/services/dev.ryanhcode.sable.platform.SableEventPublishPlatform'
+            exclude 'META-INF/services/dev.ryanhcode.sable.platform.SableSubLevelRenderPlatform'
+            exclude '*.disabled'
+            exclude 'fabric.mod.json'
+        }
+    }
+    cp2Probe {
+        java {
+            setSrcDirs([
+                    '../common/src/main/java',
+                    '../sable_rapier/src/main/java',
+                    'src/main/java'
+            ])
+        }
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+    cp2CoreProbe {
+        java {
+            setSrcDirs([
+                    '../common/src/main/java',
+                    '../sable_rapier/src/main/java'
+            ])
+            exclude '**/mixin/**'
+            exclude '**/compatibility/**'
+            exclude '**/sublevel/storage/debug/**'
+            exclude '**/render/**'
+            exclude '**/sound/**'
+            exclude '**/debug/**'
+            exclude '**/gametest/**'
+            exclude '**/mixinhelper/**'
+            exclude '**/mixinhelpers/**'
+            exclude '**/mixinterface/sublevel_render/**'
+            exclude '**/SableClient.java'
+            exclude '**/SableClientConfig.java'
+            exclude '**/config/SubLevelSettingsScreen.java'
+            exclude '**/sublevel/ClientSubLevel.java'
+            exclude '**/sublevel/water_occlusion/**'
+            exclude '**/index/SableToasts.java'
+            exclude '**/platform/SableSubLevelRenderPlatform.java'
+            exclude '**/network/**'
+        }
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+    m1CoreProbe {
+        java {
+            setSrcDirs([
+                    '../common/src/main/java',
+                    '../sable_rapier/src/main/java',
+                    'src/m1CoreProbe/java'
+            ])
+            exclude '**/sublevel/water_occlusion/ClientWaterOcclusionContainer.java'
+            exclude '**/mixin/**'
+            exclude '**/compatibility/**'
+            exclude '**/sublevel/storage/debug/**'
+            exclude '**/gametest/**'
+            exclude '**/sound/**'
+            exclude '**/render/fancy/**'
+            exclude '**/render/dynamic_shade/**'
+            exclude '**/render/sky_light_shadow/**'
+            exclude '**/render/water_occlusion/**'
+            exclude '**/render/region/**'
+            exclude '**/mixinhelpers/loaded_chunk_debug/**'
+            exclude '**/mixinhelpers/block_outline_render/**'
+            exclude '**/mixinhelpers/entity/sublevels_block_sky/**'
+            exclude '**/mixinhelpers/entity/entity_rendering/shadows/**'
+            exclude '**/config/SubLevelSettingsScreen.java'
+            exclude '**/sublevel/render/dispatcher/FancySubLevelRenderDispatcher.java'
+            exclude '**/sublevel/render/dispatcher/ReachAroundSubLevelRenderDispatcher.java'
+            exclude '**/sublevel/render/dispatcher/SubLevelTextureCache.java'
+            exclude '**/mixinhelper/compatibility/**'
+            exclude '**/mixinhelpers/compatibility/**'
+        }
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+    // M7 diagnostic boundary: compile the complete upstream Create/Flywheel
+    // compatibility surface against the exact target dependencies without
+    // allowing probe classes into the production JAR.
+    m7CompatibilityProbe {
+        java {
+            setSrcDirs(['src/main/java'])
+            include 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/**'
+            include 'dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel/**'
+            include 'dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/create/**'
+            include 'dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/flywheel/**'
+            include 'dev/ryanhcode/sable/neoforge/mixinterface/compatibility/**'
+            include 'dev/ryanhcode/sable/neoforge/compatibility/flywheel/**'
+            include 'dev/ryanhcode/sable/neoforge/physics/callback/**'
+            // Known 1.21.1-only boundaries are excluded so one compile reveals
+            // all remaining Create 6.0.8-compatible groups in a single pass.
+            exclude 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/flywheel/FlywheelBlockEntityMixin.java'
+        }
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+    // M6 diagnostic boundary: vanilla-only upstream mixins, isolated from
+    // optional third-party integrations and production packaging.
+    m6VanillaProbe {
+        java {
+            setSrcDirs(['../common/src/main/java'])
+            include 'dev/ryanhcode/sable/mixin/**'
+            include 'dev/ryanhcode/sable/sound/**'
+            include 'dev/ryanhcode/sable/config/SubLevelSettingsScreen.java'
+            include 'dev/ryanhcode/sable/mixinhelpers/entity/entity_rendering/shadows/**'
+            include 'dev/ryanhcode/sable/mixinhelpers/entity/sublevels_block_sky/**'
+            exclude 'dev/ryanhcode/sable/mixin/compatibility/**'
+            exclude 'dev/ryanhcode/sable/mixin/game_test/**'
+            exclude 'dev/ryanhcode/sable/mixin/AbstractSableMixinPlugin.java'
+            exclude 'dev/ryanhcode/sable/mixin/debug_render/**'
+            exclude 'dev/ryanhcode/sable/mixin/sublevel_render/impl/sodium/**'
+            exclude 'dev/ryanhcode/sable/mixin/dynamic_directional_shading/**'
+            exclude 'dev/ryanhcode/sable/mixin/entity/entity_pathfinding/PathfindingContextMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/entity/server_entities_tick/**'
+            exclude 'dev/ryanhcode/sable/mixin/loaded_chunk_debug/**'
+            exclude 'dev/ryanhcode/sable/mixin/recoil/**'
+            exclude 'dev/ryanhcode/sable/mixin/sublevel_render/**'
+            exclude 'dev/ryanhcode/sable/mixin/water_occlusion/**'
+            exclude 'dev/ryanhcode/sable/mixin/plot/ClientChunkCacheMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/interaction_distance/PlayerMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/voxel_shape_iteration/VoxelShapeMixin.java'
+        }
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+    validation {
+        java.setSrcDirs(['src/validation/java'])
+        resources.setSrcDirs(['src/validation/resources'])
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += output + compileClasspath + sourceSets.main.runtimeClasspath
+    }
+    test {
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
+// Generate the additional SRG mappings needed for @Shadow members from only
+// the active Minecraft-target mixins. Running the AP over Create/Flywheel
+// targets incorrectly asks the Minecraft mapping set to rename third-party
+// method names. The complete injection refmap is generated from the same
+// official mapping input and checked in under src/port/resources.
+def activeCommonMixins = new groovy.json.JsonSlurper()
+        .parse(file('../common/src/main/resources/sable.mixins.json'))
+        .with { (mixins ?: []) + (client ?: []) + (server ?: []) }
+def activeForgeMixins = new groovy.json.JsonSlurper()
+        .parse(file('src/main/resources/sable-forge.mixins.json'))
+        .with { (mixins ?: []) + (client ?: []) + (server ?: []) }
+
+sourceSets {
+    mixinMappings {
+        java {
+            setSrcDirs(['../common/src/main/java', 'src/port/java', 'src/main/java'])
+            activeCommonMixins.each { entry ->
+                include "dev/ryanhcode/sable/mixin/${entry.replace('.', '/')}.java"
+            }
+            activeForgeMixins.each { entry ->
+                include "dev/ryanhcode/sable/neoforge/mixin/${entry.replace('.', '/')}.java"
+            }
+            // Forge-only renderer adapters are kept in a path that makes their
+            // target-version provenance explicit, while their Java package must
+            // still match the upstream NeoForge mixin configuration. Include the
+            // physical source path so the Mixin AP emits the SRG selectors used by
+            // production Forge launches (the main source set alone is not enough).
+            include 'dev/ryanhcode/sable/forge/adaptermixins/**'
+            include 'dev/ryanhcode/sable/admitted/**'
+            include 'support/**'
+            // These 1.21 sources are replaced by same-package 1.20 adapters.
+            exclude 'dev/ryanhcode/sable/mixin/command/ArgumentTypeInfosMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/block_properties/BlockStateMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/plot/ClientChunkCacheMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/plot/container/ClientLevelMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/plot/container/ServerLevelMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/plot/LevelChunkMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/plot/serialization/LevelChunkTicksMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/plot/MinecraftMixin.java'
+            exclude 'dev/ryanhcode/sable/mixin/sublevel_render/RenderSectionAccessor.java'
+            exclude 'dev/ryanhcode/sable/mixin/level_accelerator/ServerChunkCacheAccessor.java'
+            exclude 'dev/ryanhcode/sable/mixin/plot/ServerChunkCacheMixin.java'
+        }
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+}
+
+mixin {
+    add sourceSets.mixinMappings, 'sable-common-shadow.refmap.json'
+    config 'sable.mixins.json'
+    config 'sable-create.mixins.json'
+    config 'sable-forge.mixins.json'
+}
+
+def mergedSableRefmap = layout.buildDirectory.file('generated/sable-refmap/sable.refmap.json')
+
+tasks.register('mergeSableRefmap') {
+    dependsOn tasks.named('compileMixinMappingsJava')
+    inputs.file('src/port/resources/sable.refmap.json')
+    inputs.file(layout.buildDirectory.file('mixin/sable-common-shadow.refmap.json'))
+    outputs.file(mergedSableRefmap)
+    doLast {
+        def slurper = new groovy.json.JsonSlurper()
+        def base = slurper.parse(file('src/port/resources/sable.refmap.json'))
+        def generated = slurper.parse(layout.buildDirectory.file('mixin/sable-common-shadow.refmap.json').get().asFile)
+
+        generated.each { section, entries ->
+            if (entries instanceof Map) {
+                def destination = base.computeIfAbsent(section) { [:] }
+                entries.each { mixinClass, mappings ->
+                    if (mappings instanceof Map) {
+                        def mixinDestination = destination.computeIfAbsent(mixinClass) { [:] }
+                        mixinDestination.putAll(mappings)
+                    } else {
+                        destination[mixinClass] = mappings
+                    }
+                }
+            } else {
+                base[section] = entries
+            }
+        }
+
+        // ServerChunkCache loads while an integrated server creates or opens a
+        // world. A missing SRG selector therefore bricks both paths before any
+        // gameplay validation can run. Keep the complete target adapter mapping
+        // as a production build invariant.
+        def plotMixin = 'dev/ryanhcode/sable/mixin/plot/ServerChunkCacheMixin'
+        def requiredPlotMappings = [
+                getChunkNow             : 'Lnet/minecraft/server/level/ServerChunkCache;m_7131_(II)Lnet/minecraft/world/level/chunk/LevelChunk;',
+                getChunkFutureMainThread: 'Lnet/minecraft/server/level/ServerChunkCache;m_8456_(IILnet/minecraft/world/level/chunk/ChunkStatus;Z)Ljava/util/concurrent/CompletableFuture;',
+                hasChunk               : 'Lnet/minecraft/server/level/ServerChunkCache;m_5563_(II)Z',
+                getChunkForLighting     : 'Lnet/minecraft/server/level/ServerChunkCache;m_6196_(II)Lnet/minecraft/world/level/chunk/LightChunk;',
+                isPositionTicking       : 'Lnet/minecraft/server/level/ServerChunkCache;m_143239_(J)Z',
+                getFullChunk            : 'Lnet/minecraft/server/level/ServerChunkCache;m_8370_(JLjava/util/function/Consumer;)V',
+                getVisibleChunkIfPresent: 'Lnet/minecraft/server/level/ServerChunkCache;m_8364_(J)Lnet/minecraft/server/level/ChunkHolder;',
+                addRegionTicket         : 'Lnet/minecraft/server/level/ServerChunkCache;m_8387_(Lnet/minecraft/server/level/TicketType;Lnet/minecraft/world/level/ChunkPos;ILjava/lang/Object;)V',
+                blockChanged            : 'Lnet/minecraft/server/level/ServerChunkCache;m_8450_(Lnet/minecraft/core/BlockPos;)V'
+        ]
+        [base.mappings[plotMixin], base.data.searge[plotMixin]].each { actual ->
+            requiredPlotMappings.each { name, expected ->
+                if (actual == null || actual[name] != expected) {
+                    throw new GradleException("Missing or incorrect production SRG mapping for ${plotMixin}.${name}: ${actual == null ? null : actual[name]}")
+                }
+            }
+        }
+
+        // Create belt controllers are global block entities. Forge 1.20.1
+        // performs this visibility call before dispatching their renderer, so a
+        // missing remap silently restores plot-space culling in production.
+        def globalBlockEntityMixin = 'dev/ryanhcode/sable/neoforge/mixin/admitted/GlobalSubLevelBlockEntityMixin'
+        def requiredGlobalBlockEntityMappings = [
+                renderLevel: 'Lnet/minecraft/client/renderer/LevelRenderer;m_109599_(Lcom/mojang/blaze3d/vertex/PoseStack;FJZLnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/GameRenderer;Lnet/minecraft/client/renderer/LightTexture;Lorg/joml/Matrix4f;)V',
+                'Lnet/minecraft/client/renderer/culling/Frustum;isVisible(Lnet/minecraft/world/phys/AABB;)Z': 'Lnet/minecraft/client/renderer/culling/Frustum;m_113029_(Lnet/minecraft/world/phys/AABB;)Z',
+                'Lnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;render(Lnet/minecraft/world/level/block/entity/BlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V': 'Lnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;m_112267_(Lnet/minecraft/world/level/block/entity/BlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V'
+        ]
+        [base.mappings[globalBlockEntityMixin], base.data.searge[globalBlockEntityMixin]].each { actual ->
+            requiredGlobalBlockEntityMappings.each { name, expected ->
+                if (actual == null || actual[name] != expected) {
+                    throw new GradleException("Missing or incorrect production SRG mapping for ${globalBlockEntityMixin}.${name}: ${actual == null ? null : actual[name]}")
+                }
+            }
+        }
+
+        // Create 1.20.1 keeps the shared configuration-packet range check in a
+        // private lambda and calls the obfuscated BlockPos method in production.
+        // All 24 packet subclasses depend on this single selector remaining valid.
+        def createConfigurationMixin = 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/configuration/BlockEntityConfigurationPacketMixin'
+        def createConfigurationRangeSelector = 'Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z'
+        def createConfigurationRangeMapping = 'Lnet/minecraft/core/BlockPos;m_123314_(Lnet/minecraft/core/Vec3i;D)Z'
+        [base.mappings[createConfigurationMixin], base.data.searge[createConfigurationMixin]].each { actual ->
+            if (actual == null || actual[createConfigurationRangeSelector] != createConfigurationRangeMapping) {
+                throw new GradleException("Missing or incorrect production SRG mapping for ${createConfigurationMixin}: ${actual == null ? null : actual[createConfigurationRangeSelector]}")
+            }
+        }
+
+        // Dynamic block-face shading is split across the 1.20.1 chunk compiler,
+        // flat-model and ambient-occlusion paths. Losing any one selector leaves
+        // plot-axis lighting baked into a rotating physical object.
+        def dynamicShadeMappings = [
+                'dev/ryanhcode/sable/neoforge/mixin/dynamic_directional_shading/ChunkRenderRebuildTaskMixin': [
+                        compile: 'Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$RebuildTask;m_234467_(FFFLnet/minecraft/client/renderer/ChunkBufferBuilderPack;)Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$RebuildTask$CompileResults;'
+                ],
+                'dev/ryanhcode/sable/mixin/dynamic_directional_shading/ModelBlockRendererMixin': [
+                        putQuadData: 'Lnet/minecraft/client/renderer/block/ModelBlockRenderer;m_111023_(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/renderer/block/model/BakedQuad;FFFFIIIII)V',
+                        renderModelFaceFlat: 'Lnet/minecraft/client/renderer/block/ModelBlockRenderer;m_111001_(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;IIZLcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Ljava/util/List;Ljava/util/BitSet;)V'
+                ],
+                'dev/ryanhcode/sable/mixin/dynamic_directional_shading/AmbientOcclusionFaceMixin': [
+                        calculate: 'Lnet/minecraft/client/renderer/block/ModelBlockRenderer$AmbientOcclusionFace;m_111167_(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;[FLjava/util/BitSet;Z)V'
+                ]
+        ]
+        [base.mappings, base.data.searge].each { section ->
+            dynamicShadeMappings.each { owner, required ->
+                def actual = section[owner]
+                required.each { name, expected ->
+                    if (actual == null || actual[name] != expected) {
+                        throw new GradleException("Missing or incorrect dynamic-shade SRG mapping for ${owner}.${name}: ${actual == null ? null : actual[name]}")
+                    }
+                }
+            }
+        }
+
+        // The vanilla renderer must invoke Sable before ShaderInstance.clear().
+        // Falling back to a Forge AFTER_* stage silently loses the active
+        // Sampler2/lightmap state and is only masked when Oculus owns the pass.
+        // MixinExtras does not emit the three WrapOperation/slice selectors below
+        // with Mixin 0.8.5, so bind the target-version mappings explicitly and
+        // validate them in both output sections.
+        def nativeLevelRendererMixin = 'dev/ryanhcode/sable/mixin/port/sublevel_render/LevelRendererMixin'
+        def projectedEntityChunkMappings = [
+                'Lnet/minecraft/client/renderer/LevelRenderer;isChunkCompiled(Lnet/minecraft/core/BlockPos;)Z': 'Lnet/minecraft/client/renderer/LevelRenderer;m_202430_(Lnet/minecraft/core/BlockPos;)Z',
+                'Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;shouldRender(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/culling/Frustum;DDD)Z': 'Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;m_114397_(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/culling/Frustum;DDD)Z',
+                'Lnet/minecraft/client/renderer/LevelRenderer;renderEntity(Lnet/minecraft/world/entity/Entity;DDDFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V': 'Lnet/minecraft/client/renderer/LevelRenderer;m_109517_(Lnet/minecraft/world/entity/Entity;DDDFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V'
+        ]
+        [base.mappings, base.data.searge].each { section ->
+            section.computeIfAbsent(nativeLevelRendererMixin) { [:] }.putAll(projectedEntityChunkMappings)
+        }
+
+        def nativeRenderMappings = [
+                (nativeLevelRendererMixin): [
+                        allChanged: 'Lnet/minecraft/client/renderer/LevelRenderer;m_109818_()V',
+                        renderLevel: 'Lnet/minecraft/client/renderer/LevelRenderer;m_109599_(Lcom/mojang/blaze3d/vertex/PoseStack;FJZLnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/GameRenderer;Lnet/minecraft/client/renderer/LightTexture;Lorg/joml/Matrix4f;)V',
+                        'Lnet/minecraft/client/renderer/LevelRenderer;globalBlockEntities:Ljava/util/Set;': 'Lnet/minecraft/client/renderer/LevelRenderer;f_109468_:Ljava/util/Set;',
+                        'Lnet/minecraft/client/renderer/DimensionSpecialEffects;constantAmbientLight()Z': 'Lnet/minecraft/client/renderer/DimensionSpecialEffects;m_108885_()Z',
+                        *: projectedEntityChunkMappings
+                ],
+                'dev/ryanhcode/sable/mixin/port/sublevel_render/impl/vanilla/LevelRendererMixin': [
+                        compileChunks: 'Lnet/minecraft/client/renderer/LevelRenderer;m_194370_(Lnet/minecraft/client/Camera;)V',
+                        renderChunkLayer: 'Lnet/minecraft/client/renderer/LevelRenderer;m_172993_(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V',
+                        'Lnet/minecraft/client/renderer/ShaderInstance;clear()V': 'Lnet/minecraft/client/renderer/ShaderInstance;m_173362_()V'
+                ]
+        ]
+        [base.mappings, base.data.searge].each { section ->
+            nativeRenderMappings.each { owner, required ->
+                def actual = section[owner]
+                required.each { name, expected ->
+                    if (actual == null || actual[name] != expected) {
+                        throw new GradleException("Missing or incorrect native-render SRG mapping for ${owner}.${name}: ${actual == null ? null : actual[name]}")
+                    }
+                }
+            }
+        }
+
+        def output = mergedSableRefmap.get().asFile
+        output.parentFile.mkdirs()
+        output.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(base)) + System.lineSeparator()
+    }
+}
+
+tasks.named('jar') {
+    dependsOn tasks.named('mergeSableRefmap')
+    from(mergedSableRefmap) {
+        rename { 'sable.refmap.json' }
+    }
+}
+
+tasks.matching { it.name == 'reobfJar' }.configureEach {
+    dependsOn tasks.named('compileMixinMappingsJava')
+}
+
+tasks.named('compileJava') {
+    // The selective mixin filter changes membership inside a shared common source
+    // root; a full javac pass prevents Gradle from pruning unchanged admitted
+    // mixin classes during an incremental compile.
+    options.incremental = false
+    // Target-only plot tick policy lives at its real package path and must be
+    // present in the production compiler input, not only the refmap source set.
+    source file('src/port/java/dev/ryanhcode/sable/mixin/plot/LevelBlockEntityTickPolicyMixin.java')
+    // Optional Embeddium target adapter must be present in the production
+    // compiler input even though the shared mixin source filter is selective.
+    source file('src/port/java/dev/ryanhcode/sable/mixin/sublevel_render/impl/embeddium/EmbeddiumDirtyBridgeMixin.java')
+    // 1.20.1 port of upstream's Sodium reach-around dispatcher. The common
+    // 1.21 implementation is excluded because its SectionRenderDispatcher API
+    // does not exist on this target.
+    source file('src/port/java/dev/ryanhcode/sable/sublevel/render/dispatcher/ReachAroundSubLevelRenderDispatcher.java')
+    // Create 1.20.1 generators need reactivation after the bulk-move network clear.
+    source file('src/port/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/kinetic_refresh/KineticBlockMixin.java')
+    // 1.20.1 equivalents of upstream's two LevelRenderer hooks. These draw
+    // before ShaderInstance.clear(), preserving the active vanilla lightmap.
+    source fileTree('src/port/java') {
+        include 'dev/ryanhcode/sable/mixin/port/sublevel_render/**'
+    }
+    // Dynamic directional shading is selected by the active mixin configs but
+    // lives below nested source roots. Add the exact production files so they
+    // cannot exist only in the refmap compiler output.
+    source fileTree('../common/src/main/java') {
+        include 'dev/ryanhcode/sable/mixin/dynamic_directional_shading/AmbientOcclusionFaceMixin.java'
+        include 'dev/ryanhcode/sable/mixin/dynamic_directional_shading/ModelBlockRendererMixin.java'
+    }
+    source file('src/port/java/dev/ryanhcode/sable/neoforge/mixin/dynamic_directional_shading/ChunkRenderRebuildTaskMixin.java')
+    source fileTree('../common/src/main/java') {
+        include 'dev/ryanhcode/sable/mixin/block_placement/**'
+        include 'dev/ryanhcode/sable/mixin/chunk_container_replacement/**'
+        include 'dev/ryanhcode/sable/mixin/camera/camera_zoom/**'
+        include 'dev/ryanhcode/sable/mixin/camera/new_camera_types/**'
+        include 'dev/ryanhcode/sable/mixin/command/DataCommandsMixin.java'
+        include 'dev/ryanhcode/sable/mixin/command/ExecuteCommandMixin.java'
+        include 'dev/ryanhcode/sable/mixin/command/ClientSuggestionProviderMixin.java'
+        include 'dev/ryanhcode/sable/mixin/config/GameRendererAccessor.java'
+        include 'dev/ryanhcode/sable/mixin/conduit/**'
+        include 'dev/ryanhcode/sable/mixin/climbing_sub_levels/**'
+        include 'dev/ryanhcode/sable/mixin/assembly/**'
+        include 'dev/ryanhcode/sable/mixin/block_decal_render/**'
+        include 'dev/ryanhcode/sable/mixin/enchanting_table/**'
+        include 'dev/ryanhcode/sable/mixin/explosion/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entities_stick_sublevels/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entities_turn_with_sub_levels/**'
+        include 'dev/ryanhcode/sable/mixin/clip_overwrite/**'
+        include 'dev/ryanhcode/sable/mixin/death_message/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_aabb_lookup/ClientLevelMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_collision/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_sublevel_collision/AbstractMinecartMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_sublevel_collision/ItemEntityMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_sublevel_collision/PlayerMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_sublevel_collision/ServerGamePacketListenerImplMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_sublevel_collision/CameraMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_swimming/CameraMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_unloading/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_leashing/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_pathfinding/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_rendering/**'
+        include 'dev/ryanhcode/sable/mixin/entity/sublevels_block_sky/**'
+        include 'dev/ryanhcode/sable/mixin/entity/teleport_players/**'
+        include 'dev/ryanhcode/sable/mixin/extension/**'
+        include 'dev/ryanhcode/sable/mixin/fluids_on_sub_levels/**'
+        include 'dev/ryanhcode/sable/mixin/impact/**'
+        include 'dev/ryanhcode/sable/mixin/physics/**'
+        include 'dev/ryanhcode/sable/mixin/particle/**'
+        include 'dev/ryanhcode/sable/mixin/player_freezing/**'
+        include 'dev/ryanhcode/sable/mixin/plot/ChunkMapMixin.java'
+        include 'dev/ryanhcode/sable/mixin/plot/PlayerListMixin.java'
+        include 'dev/ryanhcode/sable/mixin/plot/lighting/**'
+        include 'dev/ryanhcode/sable/mixin/plot/serialization/ChunkMapMixin.java'
+        include 'dev/ryanhcode/sable/mixin/portal/**'
+        include 'dev/ryanhcode/sable/mixin/prevent_freezing/**'
+        include 'dev/ryanhcode/sable/mixin/prevent_overgrowth/**'
+        include 'dev/ryanhcode/sable/mixin/punching/**'
+        include 'dev/ryanhcode/sable/mixin/respawn_point/**'
+        include 'dev/ryanhcode/sable/mixin/sign_interaction/**'
+        include 'dev/ryanhcode/sable/mixin/sculk_vibrations/**'
+        include 'dev/ryanhcode/sable/mixin/sky_light_shadow/**'
+        include 'dev/ryanhcode/sable/mixin/sublevel_sounds/**'
+        include 'dev/ryanhcode/sable/mixin/stop_lightning/**'
+        include 'dev/ryanhcode/sable/mixin/stop_rain/**'
+        include 'dev/ryanhcode/sable/mixin/toast/**'
+        include 'dev/ryanhcode/sable/mixin/tracking_points/**'
+        include 'dev/ryanhcode/sable/mixin/world_border/**'
+        include 'dev/ryanhcode/sable/mixin/player_standup/**'
+        include 'dev/ryanhcode/sable/mixin/options/**'
+        include 'dev/ryanhcode/sable/config/SubLevelSettingsScreen.java'
+        include 'dev/ryanhcode/sable/mixinhelpers/entity/entity_rendering/shadows/**'
+        include 'dev/ryanhcode/sable/mixinhelpers/entity/sublevels_block_sky/**'
+        include 'dev/ryanhcode/sable/sound/**'
+        exclude 'dev/ryanhcode/sable/mixin/entity/entity_pathfinding/PathfindingContextMixin.java'
+        exclude 'dev/ryanhcode/sable/mixin/interaction_distance/PlayerMixin.java'
+    }
+}
+
+tasks.named('sourcesJar') {
+    // Selective nested source roots expose same-named mixins at the archive root.
+    // Keep one flat compatibility entry and also preserve this group's package paths.
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(rootProject.projectDir) {
+        include 'LICENSE.md'
+        include 'THIRD_PARTY_NOTICES.md'
+    }
+    from('../sable_companion') {
+        include 'LICENSE'
+        rename { 'LICENSE-SABLE-COMPANION-MIT.txt' }
+    }
+    from('../common/src/main/java') {
+        include 'dev/ryanhcode/sable/mixin/dynamic_directional_shading/AmbientOcclusionFaceMixin.java'
+        include 'dev/ryanhcode/sable/mixin/dynamic_directional_shading/ModelBlockRendererMixin.java'
+        include 'dev/ryanhcode/sable/mixin/camera/camera_rotation/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_ai/**'
+        include 'dev/ryanhcode/sable/mixin/entity/projectile/**'
+        include 'dev/ryanhcode/sable/mixin/entity/tnt_jumps/**'
+        include 'dev/ryanhcode/sable/mixin/entity/arrows_hit_blocks/**'
+        include 'dev/ryanhcode/sable/mixin/entity/trident/**'
+        include 'dev/ryanhcode/sable/mixin/entity/falling_block/**'
+        include 'dev/ryanhcode/sable/mixin/entity/parrot/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_aabb_lookup/ServerLevelMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_interaction/**'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_kicking/ServerLevelMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entity_kicking/BlockMixin.java'
+        include 'dev/ryanhcode/sable/mixin/entity/entities_in_blocks/EntityMixin.java'
+        include 'dev/ryanhcode/sable/mixin/interaction_distance/EntityMixin.java'
+    }
+    from('src/port/java') {
+        include 'dev/ryanhcode/sable/mixin/sublevel_render/impl/embeddium/EmbeddiumDirtyBridgeMixin.java'
+        include 'dev/ryanhcode/sable/sublevel/render/dispatcher/ReachAroundSubLevelRenderDispatcher.java'
+        include 'dev/ryanhcode/sable/mixin/port/sublevel_render/**'
+        include 'dev/ryanhcode/sable/neoforge/mixin/dynamic_directional_shading/ChunkRenderRebuildTaskMixin.java'
+        include 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/kinetic_refresh/KineticBlockMixin.java'
+    }
+}
+
+tasks.named('processResources') {
+    from('src/port/resources') {
+        include 'META-INF/accesstransformer.cfg'
+        include 'META-INF/services/**'
+        include 'sable-create.mixins.json'
+        include 'assets/**'
+    }
+    from(rootProject.projectDir) {
+        include 'LICENSE.md'
+        include 'THIRD_PARTY_NOTICES.md'
+    }
+    from('../sable_companion') {
+        include 'LICENSE'
+        rename { 'LICENSE-SABLE-COMPANION-MIT.txt' }
+    }
+}
+
+configurations {
+    mixinMappingsImplementation.extendsFrom implementation
+    mixinMappingsCompileOnly.extendsFrom compileOnly
+    validationImplementation.extendsFrom implementation
+    validationCompileOnly.extendsFrom compileOnly
+    validationAnnotationProcessor.extendsFrom annotationProcessor
+    cp2ProbeImplementation.extendsFrom implementation
+    cp2ProbeCompileOnly.extendsFrom compileOnly
+    cp2ProbeAnnotationProcessor.extendsFrom annotationProcessor
+    cp2CoreProbeImplementation.extendsFrom implementation
+    cp2CoreProbeCompileOnly.extendsFrom compileOnly
+    cp2CoreProbeAnnotationProcessor.extendsFrom annotationProcessor
+    m1CoreProbeImplementation.extendsFrom implementation
+    m1CoreProbeCompileOnly.extendsFrom compileOnly
+    m1CoreProbeAnnotationProcessor.extendsFrom annotationProcessor
+    m7CompatibilityProbeImplementation.extendsFrom implementation
+    m7CompatibilityProbeCompileOnly.extendsFrom compileOnly
+    m7CompatibilityProbeAnnotationProcessor.extendsFrom annotationProcessor
+}
+
+tasks.named('compileCp2ProbeJava', JavaCompile) {
+    description = 'Compiles the preserved full source tree without admitting it to the CP2-A runtime artifact.'
+    options.compilerArgs.addAll(['-Xmaxerrs', '2000'])
+}
+
+tasks.named('compileCp2CoreProbeJava', JavaCompile) {
+    description = 'Compiles the CP2 server/core source boundary without client rendering, mixins or optional compatibility.'
+    options.compilerArgs.addAll(['-Xmaxerrs', '2000'])
+}
+
+tasks.named('compileM1CoreProbeJava', JavaCompile) {
+    description = 'Compiles the M1 core, network, client-container and baseline-render dependency closure.'
+    options.compilerArgs.addAll(['-Xmaxerrs', '2000'])
+}
+
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
+    validateAccessTransformers = true
+    setAccessTransformers('src/port/resources/META-INF/accesstransformer.cfg')
+    parchment {
+        minecraftVersion = parchment_minecraft
+        mappingsVersion = parchment_version
+    }
+
+    mods {
+        sable {
+            sourceSet(sourceSets.main)
+        }
+        sable_validation {
+            sourceSet(sourceSets.validation)
+        }
+    }
+
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'mixin.debug.export', 'true'
+            programArgument('-mixin.config=sable.mixins.json')
+            programArgument('-mixin.config=sable-create.mixins.json')
+            programArgument('-mixin.config=sable-forge.mixins.json')
+            programArgument('-mixin.config=sable.validation.mixins.json')
+            // ModDevGradle keeps non-module libraries for a run in this dedicated
+            // configuration. Veil's slim artifact does not carry Molang Compiler.
+            additionalRuntimeClasspathConfiguration.dependencies.add(
+                    project.dependencies.create('gg.moonflower:molang-compiler:3.1.1.19'))
+            additionalRuntimeClasspathConfiguration.dependencies.add(
+                    project.dependencies.create('at.yawk.lz4:lz4-java:1.11.0'))
+        }
+        client {
+            client()
+            gameDirectory = project.file('run/client')
+            if (project.hasProperty('sableDisableVeilImGui')) {
+                // Veil 1.0.0.296 reads this exact system property in
+                // foundry.veil.Veil before selecting its inactive ImGui backend.
+                systemProperty 'veil.disableImgui', 'true'
+            }
+            if (project.hasProperty('sableTestServer')) {
+                systemProperty 'sable.syncValidation', 'true'
+                if (project.hasProperty('sableM2Validation')) {
+                    systemProperty 'sable.m2Validation', 'true'
+                }
+                if (project.hasProperty('sableM3Validation')) {
+                    systemProperty 'sable.m2Validation', 'true'
+                    systemProperty 'sable.m3Validation', 'true'
+                }
+                if (project.hasProperty('sablePunchValidation')) {
+                    systemProperty 'sable.m2Validation', 'true'
+                    systemProperty 'sable.punchValidation', 'true'
+                }
+                if (project.hasProperty('sableFreezeValidation')) {
+                    systemProperty 'sable.m2Validation', 'true'
+                    systemProperty 'sable.freezeValidation', 'true'
+                }
+                if (project.hasProperty('sableMovementValidation')) {
+                    systemProperty 'sable.m2Validation', 'true'
+                    systemProperty 'sable.movementValidation', 'true'
+                }
+                if (project.hasProperty('sableRidingValidation')) {
+                    systemProperty 'sable.m2Validation', 'true'
+                    systemProperty 'sable.ridingValidation', 'true'
+                }
+                if (project.hasProperty('sableGizmoValidation')) {
+                    systemProperty 'sable.m2Validation', 'true'
+                    systemProperty 'sable.gizmoValidation', 'true'
+                }
+                if (project.hasProperty('sableWrongDirectionValidation')) {
+                    systemProperty 'sable.wrongDirectionValidation',
+                            project.property('sableWrongDirectionValidation').toString()
+                }
+                if (project.hasProperty('sableGizmoEnterValidation')) {
+                    systemProperty 'sable.gizmoEnterValidation', 'true'
+                }
+                if (project.hasProperty('sableUdpValidation')) {
+                    systemProperty 'sable.udpValidation', 'true'
+                }
+                programArgument('--quickPlayMultiplayer')
+                programArgument(project.property('sableTestServer').toString() + ':'
+                        + (project.findProperty('sableTestPort')?.toString() ?: '25566'))
+            }
+
+            def imguiLwjgl = project.dependencies.create(
+                    'io.github.spair:imgui-java-lwjgl3:1.86.11')
+            imguiLwjgl.exclude group: 'org.lwjgl'
+            imguiLwjgl.exclude group: 'org.lwjgl.lwjgl'
+
+            [
+                    project.dependencies.create('io.github.spair:imgui-java-binding:1.86.11'),
+                    imguiLwjgl,
+                    project.dependencies.create('io.github.spair:imgui-java-natives-windows:1.86.11')
+            ].each { dependency ->
+                additionalRuntimeClasspathConfiguration.dependencies.add(dependency)
+            }
+
+            [
+                    'org.lwjgl:lwjgl-opencl:3.3.1',
+                    'org.lwjgl:lwjgl-shaderc:3.3.1',
+                    'org.lwjgl:lwjgl-shaderc:3.3.1:natives-windows'
+            ].each { notation ->
+                def dependency = project.dependencies.create(notation)
+                dependency.transitive = false
+                additionalRuntimeClasspathConfiguration.dependencies.add(dependency)
+            }
+        }
+        server {
+            server()
+            gameDirectory = project.hasProperty('sableM4RunDir')
+                    ? project.file(project.property('sableM4RunDir'))
+                    : project.file('run/server')
+            if (project.hasProperty('sableM2Validation')) {
+                systemProperty 'sable.m2Validation', 'true'
+            }
+            if (project.hasProperty('sableM3Validation')) {
+                systemProperty 'sable.m2Validation', 'true'
+                systemProperty 'sable.m3Validation', 'true'
+            }
+            if (project.hasProperty('sablePunchValidation')) {
+                systemProperty 'sable.m2Validation', 'true'
+                systemProperty 'sable.punchValidation', 'true'
+            }
+            if (project.hasProperty('sableFreezeValidation')) {
+                systemProperty 'sable.m2Validation', 'true'
+                systemProperty 'sable.freezeValidation', 'true'
+            }
+            if (project.hasProperty('sableMovementValidation')) {
+                systemProperty 'sable.m2Validation', 'true'
+                systemProperty 'sable.movementValidation', 'true'
+            }
+            if (project.hasProperty('sableRidingValidation')) {
+                systemProperty 'sable.m2Validation', 'true'
+                systemProperty 'sable.ridingValidation', 'true'
+            }
+            if (project.hasProperty('sableGizmoValidation')) {
+                systemProperty 'sable.m2Validation', 'true'
+                systemProperty 'sable.gizmoValidation', 'true'
+            }
+            if (project.hasProperty('sableWrongDirectionValidation')) {
+                systemProperty 'sable.wrongDirectionValidation',
+                        project.property('sableWrongDirectionValidation').toString()
+            }
+            if (project.hasProperty('sableGizmoEnterValidation')) {
+                systemProperty 'sable.gizmoEnterValidation', 'true'
+            }
+            if (project.hasProperty('sableUdpValidation')) {
+                systemProperty 'sable.udpValidation', 'true'
+            }
+            if (project.hasProperty('sableM4ValidationPhase')) {
+                systemProperty 'sable.m4ValidationPhase',
+                        project.property('sableM4ValidationPhase').toString()
+            }
+        }
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = project.hasProperty('sableGameTestRunDir')
+                    ? project.file(project.property('sableGameTestRunDir'))
+                    : project.file('run/gametest')
+            systemProperty 'forge.enabledGameTestNamespaces', 'sable'
+        }
+    }
+}
+
+tasks.register('validationJar', Jar) {
+    description = 'Builds the development-only Sable validation mod; never embedded in the production JAR.'
+    archiveClassifier = 'validation'
+    from sourceSets.validation.output
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.blamejared.com' }
+    maven { url = 'https://maven.createmod.net' }
+    maven { url = 'https://maven.ithundxr.dev/mirror' }
+    maven { url = 'https://maven.ryanhcode.dev/releases' }
+}
+
+dependencies {
+    mixinMappingsAnnotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    implementation 'org.apache.maven:maven-artifact:3.8.5'
+    implementation 'org.joml:joml:1.10.5'
+
+    veilSlim("foundry.veil:Veil-forge-${minecraft_version}:${veil_version}:slim") {
+        transitive = false
+    }
+    // The published Veil mixin is SRG-named. The task output is a development
+    // dependency only; it is not nested into Sable's production jar.
+    implementation(files(patchVeilForNamedDev))
+    // Veil's Forge runtime artifact is the slim jar and its launcher metadata
+    // normally supplies Molang. Manual Forge/HMCL installs do not consume that
+    // metadata, so make the mandatory compiler available as a JarJar library.
+    implementation(jarJar('gg.moonflower:molang-compiler:3.1.1.19'))
+    implementation(jarJar('io.github.spair:imgui-java-binding:1.86.11'))
+    implementation(jarJar('io.github.spair:imgui-java-lwjgl3:1.86.11'))
+    implementation(jarJar('io.github.spair:imgui-java-natives-windows:1.86.11'))
+    implementation(jarJar('at.yawk.lz4:lz4-java:1.11.0'))
+
+    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
+        transitive = false
+    }
+    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    modCompileOnly("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}")
+    modCompileOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
+    modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
+    modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+
+    implementation(jarJar('io.github.llamalad7:mixinextras-forge:0.5.3'))
+    compileOnly(annotationProcessor('io.github.llamalad7:mixinextras-common:0.5.3'))
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    def props = [
+            version: rootProject.version,
+            mod_id: mod_id,
+            mod_name: mod_name,
+            mod_author: mod_author,
+            credits: credits,
+            description: project.findProperty('description'),
+            license: license,
+            issues: issues,
+            minecraft_version_range: minecraft_version_range,
+            forge_loader_version_range: forge_loader_version_range,
+            create_version_range: '[6.0.8,6.1.0)'
+    ]
+    inputs.properties(props)
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand props
+    }
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes([
+                'Specification-Title': mod_name,
+                'Specification-Vendor': mod_author,
+                'Specification-Version': rootProject.version,
+                'Implementation-Title': 'sable-forge',
+                'Implementation-Version': rootProject.version,
+                'Implementation-Vendor': mod_author,
+                'Built-On-Minecraft': minecraft_version,
+                'MixinConfigs': 'sable.mixins.json,sable-create.mixins.json,sable-forge.mixins.json'
+        ])
+    }
+}

@@ -29,7 +29,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Clearable;
-import net.minecraft.world.RandomizableContainer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.HangingEntity;
 import net.minecraft.world.level.ChunkPos;
@@ -39,6 +38,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BellAttachType;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -208,7 +208,9 @@ public class SubLevelAssemblyHelper {
         int blockCount = 0;
         final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
         while (!frontier.isEmpty()) {
-            final Pair<BlockPos, BlockState> pair = frontier.removeFirst();
+            final Iterator<Pair<BlockPos, BlockState>> frontierIterator = frontier.iterator();
+            final Pair<BlockPos, BlockState> pair = frontierIterator.next();
+            frontierIterator.remove();
             final BlockPos pos = pair.key();
 
             blockCount++;
@@ -307,14 +309,31 @@ public class SubLevelAssemblyHelper {
             boolean moveEntity = false;
 
             if (entity instanceof final HangingEntity hangingEntity) {
-                moveEntity = BlockPos.betweenClosedStream(hangingEntity.calculateSupportBox()).anyMatch(blockPos ->
-                        volume.getOccupied(blockPos.getX(), blockPos.getY(), blockPos.getZ()));
+                moveEntity = hasOccupiedHangingSupport(hangingEntity, volume);
             }
 
             if (moveEntity) {
                 entity.setPos(transform.apply(entity.position()));
             }
         }
+    }
+
+    private static boolean hasOccupiedHangingSupport(final HangingEntity entity, final BoundedBitVolume3i volume) {
+        final int width = Math.max(1, entity.getWidth() / 16);
+        final int height = Math.max(1, entity.getHeight() / 16);
+        final BlockPos supportOrigin = entity.getPos().relative(entity.getDirection().getOpposite());
+        final Direction horizontal = entity.getDirection().getCounterClockWise();
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                final BlockPos support = supportOrigin.relative(horizontal, x + (width - 1) / -2)
+                        .relative(Direction.UP, y + (height - 1) / -2);
+                if (volume.getOccupied(support.getX(), support.getY(), support.getZ())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean needsBitSet(final ServerLevel level, final BoundingBox3ic bounds, final List<Entity> entities) {
@@ -382,7 +401,7 @@ public class SubLevelAssemblyHelper {
                 CompoundTag tag = null;
 
                 if (blockEntity != null) {
-                    tag = blockEntity.saveWithFullMetadata(level.registryAccess());
+                    tag = blockEntity.saveWithFullMetadata();
 
                     tag.putInt("x", newPos.getX());
                     tag.putInt("y", newPos.getY());
@@ -398,8 +417,8 @@ public class SubLevelAssemblyHelper {
                     //
                     // A real solution is to implement Clearable on all block entities that can be cleared in the
                     // same way as Vanilla MC. See SetBlockCommand
-                    if (blockEntity instanceof final RandomizableContainer container) {
-                        container.setLootTable(null);
+                    if (blockEntity instanceof final RandomizableContainerBlockEntity container) {
+                        container.setLootTable(null, 0L);
                     }
                     Clearable.tryClear(blockEntity);
                 }
@@ -412,7 +431,7 @@ public class SubLevelAssemblyHelper {
                 final BlockEntity newBlockEntity = resultingLevel.getBlockEntity(newPos);
 
                 if (newBlockEntity != null && tag != null) {
-                    newBlockEntity.loadWithComponents(tag, level.registryAccess());
+                    newBlockEntity.load(tag);
                 }
 
                 if (state.getBlock() instanceof final BlockSubLevelAssemblyListener listener) {

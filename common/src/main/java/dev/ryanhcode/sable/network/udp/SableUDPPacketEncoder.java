@@ -6,7 +6,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.EncoderException;
 import io.netty.handler.codec.MessageToMessageEncoder;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ public class SableUDPPacketEncoder extends MessageToMessageEncoder<AddressedSabl
         try {
             final ByteBuf buf = ctx.alloc().ioBuffer();
             buf.writeByte(packetType.ordinal());
-            packetType.write(new RegistryFriendlyByteBuf(buf, null), msg);
+            packetType.write(new FriendlyByteBuf(buf), msg);
 
 //            out.add(new DefaultAddressedEnvelope<ByteBuf, SocketAddress>(buf, envelope.address()));
             out.add(new DatagramPacket(buf, envelope.address()));

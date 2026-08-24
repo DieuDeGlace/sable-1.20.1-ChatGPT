@@ -342,7 +342,7 @@ public class SubLevelStorageFile implements AutoCloseable {
 
         try (dataInputStream) {
             if (COMPRESS_DATA) {
-                return NbtIo.readCompressed(dataInputStream, NbtAccounter.unlimitedHeap());
+                return NbtIo.readCompressed(dataInputStream);
             } else {
                 return NbtIo.read(dataInputStream);
             }

@@ -423,7 +423,7 @@ public class SubLevelPhysicsSystem implements SubLevelObserver {
             return false;
         }
 
-        final int newCooldown = Math.max(SableConfig.SUB_LEVEL_PUNCH_COOLDOWN_TICKS.getAsInt(), cooldownAttempt);
+        final int newCooldown = Math.max(SableConfig.SUB_LEVEL_PUNCH_COOLDOWN_TICKS.get(), cooldownAttempt);
         this.punchCooldowns.put(player, newCooldown);
         return true;
     }

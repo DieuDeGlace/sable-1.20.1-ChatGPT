@@ -16,14 +16,13 @@ import dev.ryanhcode.sable.sublevel.plot.LevelPlot;
 import dev.ryanhcode.sable.sublevel.plot.PlotChunkHolder;
 import dev.ryanhcode.sable.sublevel.plot.SubLevelPlayerChunkSender;
 import dev.ryanhcode.sable.sublevel.storage.SubLevelRemovalReason;
-import foundry.veil.api.network.VeilPacketManager;
+import dev.ryanhcode.sable.network.tcp.SablePacketManager;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.tcp.SableTCPPacket;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.server.level.ServerLevel;
@@ -61,8 +60,24 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
     }
 
     private boolean shouldLoad(final Player player, final Vector3dc entityPosition) {
-        final double trackingRange = SableConfig.SUB_LEVEL_TRACKING_RANGE.getAsDouble();
+        final double trackingRange = SableConfig.SUB_LEVEL_TRACKING_RANGE.get();
         return entityPosition.distanceSquared(player.getX(), player.getY(), player.getZ()) < trackingRange * trackingRange;
+    }
+
+    /**
+     * Forge 1.20.1 can expose a logged-in player through PlayerList before the
+     * ServerLevel-local player lookup sees it. Use the authoritative server list
+     * and retain the original same-dimension requirement.
+     */
+    private @Nullable ServerPlayer getLevelPlayer(final UUID uuid) {
+        final ServerPlayer player = this.level.getServer().getPlayerList().getPlayer(uuid);
+        return player != null && player.serverLevel() == this.level ? player : null;
+    }
+
+    private Iterable<ServerPlayer> levelPlayers() {
+        return () -> this.level.getServer().getPlayerList().getPlayers().stream()
+                .filter(player -> player.serverLevel() == this.level)
+                .iterator();
     }
 
     @Override
@@ -77,27 +92,27 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
         this.sendRemoval(this.serverWidePlayerSink(serverSubLevel), serverSubLevel);
     }
 
-    public VeilPacketManager.PacketSink serverWidePlayerSink(final ServerSubLevel serverSubLevel) {
+    public SablePacketManager.PacketSink serverWidePlayerSink(final ServerSubLevel serverSubLevel) {
         return packet -> {
             for (final UUID uuid : serverSubLevel.getTrackingPlayers()) {
                 final ServerPlayer player = this.level.getServer().getPlayerList().getPlayer(uuid);
 
                 if (player instanceof ServerPlayer) {
-                    player.connection.send(packet);
+                    SablePacketManager.player(player).sendPacket(packet);
                 }
             }
         };
     }
 
     private void collectPlayers(final Vector3d position, final Collection<UUID> tracking) {
-        for (final ServerPlayer player : this.level.players()) {
+        for (final ServerPlayer player : this.levelPlayers()) {
             if (this.shouldLoad(player, position)) {
                 tracking.add(player.getGameProfile().getId());
             }
         }
     }
 
-    private void sendFullSync(final ServerPlayer player, final ServerSubLevel subLevel, @Nullable final CustomPacketPayload extraPacket) {
+    private void sendFullSync(final ServerPlayer player, final ServerSubLevel subLevel, @Nullable final SableTCPPacket extraPacket) {
         final SubLevelContainer container = SubLevelContainer.getContainer(this.level);
         assert container != null;
 
@@ -106,19 +121,19 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
         final LevelPlot plot = subLevel.getPlot();
 
         final Collection<PlotChunkHolder> chunks = plot.getLoadedChunks();
-        final ObjectList<Packet<? super ClientGamePacketListener>> packets = new ObjectArrayList<>(3 + chunks.size());
+        final ObjectList<Packet<ClientGamePacketListener>> packets = new ObjectArrayList<>(3 + chunks.size());
 
-        packets.add(new ClientboundCustomPayloadPacket(new ClientboundStartTrackingSubLevelPacket(l, subLevel.getUniqueId(), subLevel.lastPose(), subLevel.logicalPose(), plot.getBoundingBox(), subLevel.getName(), this.interpolationTick)));
+        packets.add(SablePacketManager.clientboundVanillaPacket(new ClientboundStartTrackingSubLevelPacket(l, subLevel.getUniqueId(), subLevel.lastPose(), subLevel.logicalPose(), plot.getBoundingBox(), subLevel.getName(), this.interpolationTick)));
 
         if (extraPacket != null) {
-            packets.add(new ClientboundCustomPayloadPacket(extraPacket));
+            packets.add(SablePacketManager.clientboundVanillaPacket(extraPacket));
         }
 
         for (final PlotChunkHolder chunk : chunks) {
             SubLevelPlayerChunkSender.sendChunk(packets::add, plot.getLightEngine(), chunk.getChunk());
         }
 
-        packets.add(new ClientboundCustomPayloadPacket(new ClientboundFinalizeSubLevelPacket(l)));
+        packets.add(SablePacketManager.clientboundVanillaPacket(new ClientboundFinalizeSubLevelPacket(l)));
         player.connection.send(new ClientboundBundlePacket(packets));
 
         for (final PlotChunkHolder chunk : chunks) {
@@ -126,7 +141,7 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
         }
     }
 
-    private void sendRemoval(final VeilPacketManager.PacketSink sink, final ServerSubLevel subLevel) {
+    private void sendRemoval(final SablePacketManager.PacketSink sink, final ServerSubLevel subLevel) {
         final SubLevelContainer container = SubLevelContainer.getContainer(this.level);
         assert container != null;
 
@@ -153,13 +168,13 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
             final SubLevel splitFromSubLevel = splitFromSubLevelID != null ? container.getSubLevel(splitFromSubLevelID) : null;
 
             for (final UUID uuid : tracking) {
-                final ServerPlayer player = (ServerPlayer) this.level.getPlayerByUUID(uuid);
+                final ServerPlayer player = this.getLevelPlayer(uuid);
 
                 if (player == null) {
                     throw new IllegalStateException("Player not found immediately after tracking initializes");
                 }
 
-                CustomPacketPayload extraPacket = null;
+                SableTCPPacket extraPacket = null;
 
                 if (splitFromSubLevelID != null && splitFromSubLevel != null) {
                     extraPacket = new ClientboundRecentlySplitSubLevelPacket(
@@ -189,7 +204,7 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
             while (iter.hasNext()) {
                 final UUID uuid = iter.next();
 
-                final ServerPlayer player = (ServerPlayer) this.level.getPlayerByUUID(uuid);
+                final ServerPlayer player = this.getLevelPlayer(uuid);
 
                 if (player == null) {
                     // player has been removed
@@ -197,7 +212,7 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
 
                     if (serverWidePlayer != null) {
                         // they are still online, just not in this world
-                        this.sendRemoval(VeilPacketManager.player(serverWidePlayer), serverSubLevel);
+                        this.sendRemoval(SablePacketManager.player(serverWidePlayer), serverSubLevel);
                     }
 
                     iter.remove();
@@ -205,13 +220,13 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
                 }
 
                 if (!this.shouldLoad(player, entityPos)) {
-                    this.sendRemoval(VeilPacketManager.player(player), serverSubLevel);
+                    this.sendRemoval(SablePacketManager.player(player), serverSubLevel);
                     iter.remove();
                 }
             }
 
             // add players who SHOULD be tracking but aren't
-            for (final ServerPlayer player : this.level.players()) {
+            for (final ServerPlayer player : this.levelPlayers()) {
                 final UUID uuid = player.getGameProfile().getId();
                 if (this.shouldLoad(player, entityPos) && !tracking.contains(uuid)) {
                     tracking.add(uuid);
@@ -283,7 +298,7 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
             }
 
             for (final UUID uuid : tracking) {
-                final ServerPlayer player = (ServerPlayer) this.level.getPlayerByUUID(uuid);
+                final ServerPlayer player = this.getLevelPlayer(uuid);
 
                 if (player == null) {
                     continue;
@@ -297,7 +312,7 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
         final long ms = System.currentTimeMillis();
         final int msSinceLastSend;
         if (this.lastSendMs == -1) {
-            msSinceLastSend = (int) (1000.0 / this.level.getServer().tickRateManager().tickrate());
+            msSinceLastSend = 50;
         } else {
             msSinceLastSend = (int) (ms - this.lastSendMs);
         }
@@ -317,7 +332,7 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
         while (currentlyUpdatingIter.hasNext()) {
             final UUID uuid = currentlyUpdatingIter.next();
 
-            final ServerPlayer player = (ServerPlayer) this.level.getPlayerByUUID(uuid);
+            final ServerPlayer player = this.getLevelPlayer(uuid);
             if (player == null) {
                 currentlyUpdatingIter.remove();
                 continue;
@@ -325,11 +340,11 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
 
             if (!movementUpdates.containsKey(uuid)) {
                 if (this.pluginNeededPlayers.contains(uuid)) {
-                    player.connection.send(new ClientboundCustomPayloadPacket(new ClientboundSableSnapshotInfoDualPacket(msSinceLastSend, this.interpolationTick, false)));
+                    SablePacketManager.player(player).sendPacket(new ClientboundSableSnapshotInfoDualPacket(msSinceLastSend, this.interpolationTick, false));
                     continue;
                 }
 
-                player.connection.send(new ClientboundCustomPayloadPacket(new ClientboundSableSnapshotInfoDualPacket(msSinceLastSend, this.interpolationTick, true)));
+                SablePacketManager.player(player).sendPacket(new ClientboundSableSnapshotInfoDualPacket(msSinceLastSend, this.interpolationTick, true));
 
                 currentlyUpdatingIter.remove();
             }
@@ -341,7 +356,10 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
 
         for (final Map.Entry<UUID, List<SubLevelUpdateTicket>> entry : movementUpdates.entrySet()) {
             final UUID uuid = entry.getKey();
-            final ServerPlayer player = (ServerPlayer) this.level.getPlayerByUUID(uuid);
+            final ServerPlayer player = this.getLevelPlayer(uuid);
+            if (player == null) {
+                continue;
+            }
 
             final List<SubLevelUpdateTicket> toUpdate = entry.getValue();
             final List<ClientboundSableSnapshotDualPacket.Entry> entries = new ObjectArrayList<>();
@@ -351,7 +369,7 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
                 final long l = getSubLevelLong(serverSubLevel, container);
 
                 switch (ticket.type) {
-                    case STOP -> player.connection.send(new ClientboundCustomPayloadPacket(new ClientboundStopMovingSubLevelPacket(l)));
+                    case STOP -> SablePacketManager.player(player).sendPacket(new ClientboundStopMovingSubLevelPacket(l));
                     case MOVE -> {
                         final Vector3f linearVelocity = new Vector3f((float) serverSubLevel.latestLinearVelocity.x, (float) serverSubLevel.latestLinearVelocity.y, (float) serverSubLevel.latestLinearVelocity.z);
                         final Vector3f angularVelocity = new Vector3f((float) serverSubLevel.latestAngularVelocity.x, (float) serverSubLevel.latestAngularVelocity.y, (float) serverSubLevel.latestAngularVelocity.z);
@@ -389,8 +407,8 @@ public class SubLevelTrackingSystem implements SubLevelObserver {
 
                     player.connection.send(
                             new ClientboundBundlePacket(List.of(
-                                    new ClientboundCustomPayloadPacket(new ClientboundSableSnapshotInfoDualPacket(msSinceLastSend, this.interpolationTick, false)),
-                                    new ClientboundCustomPayloadPacket(new ClientboundSableSnapshotDualPacket(this.interpolationTick, batch))
+                                    SablePacketManager.clientboundVanillaPacket(new ClientboundSableSnapshotInfoDualPacket(msSinceLastSend, this.interpolationTick, false)),
+                                    SablePacketManager.clientboundVanillaPacket(new ClientboundSableSnapshotDualPacket(this.interpolationTick, batch))
                             )));
                 }
             }

@@ -5,6 +5,8 @@ import dev.ryanhcode.sable.api.physics.PhysicsPipeline;
 import dev.ryanhcode.sable.api.physics.PhysicsPipelineBody;
 import dev.ryanhcode.sable.api.physics.callback.BlockSubLevelCollisionCallback;
 import dev.ryanhcode.sable.api.physics.mass.MassData;
+import dev.ryanhcode.sable.companion.math.Pose3d;
+import dev.ryanhcode.sable.physics.impl.rapier.box.RapierBoxHandle;
 import dev.ryanhcode.sable.physics.impl.rapier.collider.RapierVoxelColliderData;
 import dev.ryanhcode.sable.platform.SableLoaderPlatform;
 import dev.ryanhcode.sable.sublevel.system.SubLevelPhysicsSystem;
@@ -17,6 +19,7 @@ import net.minecraft.Util.OS;
 import net.minecraft.server.level.ServerLevel;
 import org.jetbrains.annotations.ApiStatus;
 import org.joml.Matrix3dc;
+import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
 import java.io.FileNotFoundException;
@@ -135,6 +138,26 @@ public final class Rapier3D {
     @ApiStatus.Internal
     public static synchronized int nextBodyID() {
         return countingObjectID++;
+    }
+
+    public static void verifyNativeSceneStep() {
+        final RapierPhysicsScene scene = new RapierPhysicsScene(initialize(0.0, -9.81, 0.0, 0.0));
+        RapierBoxHandle body = null;
+        try {
+            final Pose3d initialPose = new Pose3d();
+            initialPose.position().set(0.0, 10.0, 0.0);
+            body = RapierBoxHandle.create(scene.handle(), initialPose, new Vector3d(0.5), 1.0);
+            step(scene.handle(), 1.0 / 20.0);
+            final Pose3d steppedPose = new Pose3d();
+            body.readPose(steppedPose);
+            if (!Double.isFinite(steppedPose.position().y()) || steppedPose.position().y() >= 10.0) {
+                throw new IllegalStateException("Rapier dynamic box did not fall: y=" + steppedPose.position().y());
+            }
+            Sable.LOGGER.info("Sable Rapier full wrapper scene step verified (y 10.0 -> {})", steppedPose.position().y());
+        } finally {
+            if (body != null) body.remove();
+            dispose(scene.handle());
+        }
     }
 
     @ApiStatus.Internal

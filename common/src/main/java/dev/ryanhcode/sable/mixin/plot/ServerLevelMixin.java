@@ -15,7 +15,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ProgressListener;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraft.world.TickRateManager;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkSource;
@@ -39,9 +38,6 @@ public abstract class ServerLevelMixin extends Level {
     protected ServerLevelMixin(final WritableLevelData writableLevelData, final ResourceKey<Level> resourceKey, final RegistryAccess registryAccess, final Holder<DimensionType> holder, final Supplier<ProfilerFiller> supplier, final boolean bl, final boolean bl2, final long l, final int i) {
         super(writableLevelData, resourceKey, registryAccess, holder, supplier, bl, bl2, l, i);
     }
-
-    @Shadow
-    public abstract TickRateManager tickRateManager();
 
     @Shadow
     public abstract ChunkSource getChunkSource();
@@ -79,15 +75,10 @@ public abstract class ServerLevelMixin extends Level {
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("HEAD"))
     private void sable$tickPlotContainer(final BooleanSupplier booleanSupplier, final CallbackInfo ci) {
-        final TickRateManager tickRateManager = this.tickRateManager();
-        final boolean runNormally = tickRateManager.runsNormally();
-
         final ServerSubLevelContainer plotContainer = SubLevelContainer.getContainer((ServerLevel) (Object) this);
         assert plotContainer != null : "SubLevelContainer is null when ticking";
 
-        if (runNormally) {
-            plotContainer.tick();
-        }
+        plotContainer.tick();
     }
 
     @ModifyReturnValue(method = "shouldTickBlocksAt", at = @At("RETURN"))

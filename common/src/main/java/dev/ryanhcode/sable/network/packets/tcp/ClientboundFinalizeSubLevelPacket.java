@@ -5,19 +5,18 @@ import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.network.tcp.SableTCPPacket;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
-import foundry.veil.api.network.handler.PacketContext;
+import dev.ryanhcode.sable.network.tcp.PacketContext;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.tcp.CustomPacketPayload;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 
 public record ClientboundFinalizeSubLevelPacket(long plotCoordinate) implements SableTCPPacket {
 
-    public static final Type<ClientboundFinalizeSubLevelPacket> TYPE = new Type<>(Sable.sablePath("finalize_sub_level"));
+    public static final Type<ClientboundFinalizeSubLevelPacket> TYPE = new Type<>(Sable.sablePath("finalize_sub_level"), ClientboundFinalizeSubLevelPacket.class);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundFinalizeSubLevelPacket> CODEC = StreamCodec.of((buf, value) ->
+    public static final StreamCodec<FriendlyByteBuf, ClientboundFinalizeSubLevelPacket> CODEC = StreamCodec.of((buf, value) ->
             value.write(buf), ClientboundFinalizeSubLevelPacket::read);
 
     private void write(final FriendlyByteBuf buf) {

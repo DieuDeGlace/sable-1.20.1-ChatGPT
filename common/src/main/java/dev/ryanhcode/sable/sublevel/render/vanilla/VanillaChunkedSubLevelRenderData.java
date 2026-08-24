@@ -3,19 +3,18 @@ package dev.ryanhcode.sable.sublevel.render.vanilla;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexBuffer;
+import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.companion.math.BoundingBox3i;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
-import dev.ryanhcode.sable.compatibility.SableIrisCompat;
 import dev.ryanhcode.sable.mixin.sublevel_render.RenderSectionAccessor;
 import dev.ryanhcode.sable.mixinterface.sublevel_render.vanilla.RenderSectionExtension;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.render.SubLevelRenderData;
 import dev.ryanhcode.sable.sublevel.water_occlusion.WaterOcclusionContainer;
 import dev.ryanhcode.sable.sublevel.water_occlusion.WaterOcclusionRegion;
-import foundry.veil.api.compat.IrisCompat;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.client.Camera;
@@ -24,20 +23,27 @@ import net.minecraft.client.PrioritizeChunkUpdates;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.chunk.RenderRegionCache;
-import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.joml.*;
+import org.slf4j.Logger;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A renderer and view area for a {@link dev.ryanhcode.sable.sublevel.SubLevel}.
  */
 public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
 
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final AtomicInteger LIGHT_DRAW_TRACES_WRITTEN = new AtomicInteger();
+    private static final AtomicBoolean LOGGED_SYNC_UPLOAD_DRAIN = new AtomicBoolean();
+    private static final int LIGHT_DRAW_TRACE_LIMIT = 40;
     private static final Matrix4f TRANSFORM = new Matrix4f();
     private static final Matrix4f MODEL_MATRIX = new Matrix4f();
 
@@ -57,26 +63,26 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
     /**
      * All render sections this renderer stores
      */
-    private final ObjectList<SectionRenderDispatcher.RenderSection> allRenderSections = new ObjectArrayList<>();
+    private final ObjectList<ChunkRenderDispatcher.RenderChunk> allRenderSections = new ObjectArrayList<>();
     /**
      * All dirty render sections this renderer stores
      */
-    private final ObjectList<SectionRenderDispatcher.RenderSection> dirtyRenderSections = new ObjectArrayList<>();
+    private final ObjectList<ChunkRenderDispatcher.RenderChunk> dirtyRenderSections = new ObjectArrayList<>();
     /**
      * The grid of render sections
      */
-    private SectionRenderDispatcher.RenderSection[] renderSections = null;
+    private ChunkRenderDispatcher.RenderChunk[] renderSections = null;
     /**
      * The section render dispatcher to build sections through
      */
-    private final SectionRenderDispatcher sectionRenderDispatcher;
+    private final ChunkRenderDispatcher sectionRenderDispatcher;
 
     /**
      * Creates a new renderer for the given sub-level
      *
      * @param subLevel the sub-level to render
      */
-    public VanillaChunkedSubLevelRenderData(final ClientSubLevel subLevel, final SectionRenderDispatcher sectionRenderDispatcher) {
+    public VanillaChunkedSubLevelRenderData(final ClientSubLevel subLevel, final ChunkRenderDispatcher sectionRenderDispatcher) {
         this.subLevel = subLevel;
         this.sectionRenderDispatcher = sectionRenderDispatcher;
         this.resize();
@@ -93,7 +99,7 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
      * @param z        the global z coordinate
      * @return the section if it exists
      */
-    private static SectionRenderDispatcher.RenderSection getSection(final SectionRenderDispatcher.RenderSection[] sections, final Vector3i size, final Vector3i origin, final int x, final int y, final int z) {
+    private static ChunkRenderDispatcher.RenderChunk getSection(final ChunkRenderDispatcher.RenderChunk[] sections, final Vector3i size, final Vector3i origin, final int x, final int y, final int z) {
         final int relX = (x - origin.x());
         final int relY = (y - origin.y());
         final int relZ = (z - origin.z());
@@ -129,8 +135,8 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
     }
 
     public void resize() {
-        final SectionRenderDispatcher.RenderSection[] oldRenderSections = this.renderSections;
-        final Collection<SectionRenderDispatcher.RenderSection> oldRenderSectionsList = new ObjectArrayList<>(this.allRenderSections);
+        final ChunkRenderDispatcher.RenderChunk[] oldRenderSections = this.renderSections;
+        final Collection<ChunkRenderDispatcher.RenderChunk> oldRenderSectionsList = new ObjectArrayList<>(this.allRenderSections);
 
         this.renderSections = null;
         this.allRenderSections.clear();
@@ -149,19 +155,21 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             this.chunkOrigin.set(minChunkPos);
             this.origin.set(minChunkPos.x() << 4, minChunkPos.y() << 4, minChunkPos.z() << 4);
 
-            this.renderSections = new SectionRenderDispatcher.RenderSection[this.size.x() * this.size.y() * this.size.z()];
+            this.renderSections = new ChunkRenderDispatcher.RenderChunk[this.size.x() * this.size.y() * this.size.z()];
 
             for (int x = minChunkPos.x(); x <= maxChunkPos.x(); x++) {
                 for (int y = minChunkPos.y(); y <= maxChunkPos.y(); y++) {
                     for (int z = minChunkPos.z(); z <= maxChunkPos.z(); z++) {
-                        final SectionRenderDispatcher.RenderSection oldSection = getSection(oldRenderSections, oldSize, oldOrigin, x, y, z);
-                        final SectionRenderDispatcher.RenderSection newSection;
+                        final ChunkRenderDispatcher.RenderChunk oldSection = getSection(oldRenderSections, oldSize, oldOrigin, x, y, z);
+                        final ChunkRenderDispatcher.RenderChunk newSection;
 
                         if (oldRenderSections != null && oldSection != null) {
                             newSection = oldSection;
                         } else {
-                            newSection = this.sectionRenderDispatcher.new RenderSection(-1, x << 4, y << 4, z << 4);
-                            ((RenderSectionExtension) newSection).sable$addDirtyListener(this.dirtyRenderSections::add);
+                            newSection = this.sectionRenderDispatcher.new RenderChunk(-1, x << 4, y << 4, z << 4);
+                            if (newSection instanceof final RenderSectionExtension extension) {
+                                extension.sable$addDirtyListener(this.dirtyRenderSections::add);
+                            }
                         }
 
                         if (newSection.isDirty()) {
@@ -175,7 +183,7 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
 
             // free old chunks
             if (oldRenderSections != null) {
-                for (final SectionRenderDispatcher.RenderSection oldSection : oldRenderSectionsList) {
+                for (final ChunkRenderDispatcher.RenderChunk oldSection : oldRenderSectionsList) {
                     // if not in bounds
                     final SectionPos oldSectionPos = SectionPos.of(oldSection.getOrigin());
                     if (oldSectionPos.getX() < minChunkPos.x() || oldSectionPos.getX() > maxChunkPos.x() ||
@@ -184,7 +192,7 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
 
                         oldSection.releaseBuffers();
                         oldSection.updateGlobalBlockEntities(Set.of());
-                        oldSection.setCompiled(SectionRenderDispatcher.CompiledSection.EMPTY);
+                        oldSection.compiled.set(ChunkRenderDispatcher.CompiledChunk.UNCOMPILED);
                     }
                 }
             }
@@ -193,8 +201,11 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
 
     @Override
     public void rebuild() {
-        for (final SectionRenderDispatcher.RenderSection renderSection : this.allRenderSections) {
+        for (final ChunkRenderDispatcher.RenderChunk renderSection : this.allRenderSections) {
             renderSection.setDirty(true);
+            if (!this.dirtyRenderSections.contains(renderSection)) {
+                this.dirtyRenderSections.add(renderSection);
+            }
             ((RenderSectionAccessor) renderSection).getGlobalBlockEntities().clear();
         }
     }
@@ -209,8 +220,13 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
         final Vector3d cameraPos = JOMLConversion.atCenterOf(camera.getBlockPosition()).sub(8, 8, 8);
         this.subLevel.logicalPose().transformPositionInverse(cameraPos);
 
-        for (final SectionRenderDispatcher.RenderSection renderSection : this.dirtyRenderSections) {
-            ((RenderSectionExtension) renderSection).sable$setListening(false);
+        int synchronousBuilds = 0;
+        for (final ChunkRenderDispatcher.RenderChunk renderSection : this.dirtyRenderSections) {
+            final RenderSectionExtension extension = renderSection instanceof RenderSectionExtension
+                    ? (RenderSectionExtension) renderSection : null;
+            if (extension != null) {
+                extension.sable$setListening(false);
+            }
 
             boolean buildSync = false;
             if (chunkUpdates == PrioritizeChunkUpdates.NEARBY) {
@@ -222,16 +238,33 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
 
             if (buildSync) {
                 profiler.push("sublevel_build_near_sync");
-                this.sectionRenderDispatcher.rebuildSectionSync(renderSection, renderRegionCache);
+                this.sectionRenderDispatcher.rebuildChunkSync(renderSection, renderRegionCache);
+                synchronousBuilds++;
                 profiler.pop();
             } else {
                 profiler.push("sublevel_schedule_async_compile");
-                renderSection.rebuildSectionAsync(this.sectionRenderDispatcher, renderRegionCache);
+                renderSection.rebuildChunkAsync(this.sectionRenderDispatcher, renderRegionCache);
                 profiler.pop();
             }
 
             renderSection.setNotDirty();
-            ((RenderSectionExtension) renderSection).sable$setListening(true);
+            if (extension != null) {
+                extension.sable$setListening(true);
+            }
+        }
+
+        // rebuildChunkSync only compiles CPU-side RenderedBuffers. Vanilla LevelRenderer.compileChunks
+        // drains the dispatcher's upload queue immediately after its synchronous rebuild loop; without
+        // the same ownership boundary here those RenderedBuffers remain outstanding and the shared
+        // fixed BufferBuilders are reused by block-entity/UI rendering until they overflow.
+        if (synchronousBuilds > 0) {
+            profiler.push("sublevel_upload_sync_builds");
+            this.sectionRenderDispatcher.uploadAllPendingUploads();
+            profiler.pop();
+            if (LOGGED_SYNC_UPLOAD_DRAIN.compareAndSet(false, true)) {
+                LOGGER.info("SABLE-CHUNK-SYNC-UPLOAD-DRAIN: synchronousBuilds={}, thread={}",
+                        synchronousBuilds, Thread.currentThread().getName());
+            }
         }
         this.dirtyRenderSections.clear();
     }
@@ -257,7 +290,7 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
         }
 
         final int index = this.getIndex(x, y, z);
-        return index >= 0 && index < this.renderSections.length && this.renderSections[index].compiled.get() != SectionRenderDispatcher.CompiledSection.UNCOMPILED;
+        return index >= 0 && index < this.renderSections.length && this.renderSections[index].compiled.get() != ChunkRenderDispatcher.CompiledChunk.UNCOMPILED;
     }
 
     @Override
@@ -272,18 +305,22 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
 
         final int index = this.getIndex(x, y, z);
         if (index >= 0 && index < this.renderSections.length) {
-            this.renderSections[index].setDirty(playerChanged);
+            final ChunkRenderDispatcher.RenderChunk renderSection = this.renderSections[index];
+            renderSection.setDirty(playerChanged);
+            if (!this.dirtyRenderSections.contains(renderSection)) {
+                this.dirtyRenderSections.add(renderSection);
+            }
         }
     }
 
     /**
      * @return all render sections this renderer stores
      */
-    public ObjectList<SectionRenderDispatcher.RenderSection> allRenderSections() {
+    public ObjectList<ChunkRenderDispatcher.RenderChunk> allRenderSections() {
         return this.allRenderSections;
     }
 
-    public void renderChunkedSubLevel(final RenderType layer, final ShaderInstance shader, final Matrix4f modelView, final double camX, final double camY, final double camZ) {
+    public int renderChunkedSubLevel(final RenderType layer, final ShaderInstance shader, final Matrix4f modelView, final double camX, final double camY, final double camZ) {
         final Pose3dc renderPose = this.subLevel.renderPose();
         final Vector3d renderPos = new Vector3d(renderPose.position());
         final Quaterniondc renderRot = renderPose.orientation();
@@ -295,7 +332,8 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             final WaterOcclusionContainer<?> container = WaterOcclusionContainer.getContainer(this.subLevel.getLevel());
 
             final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-            final WaterOcclusionRegion occludingRegion = container.getOccludingRegion(camera.getPosition());
+            final WaterOcclusionRegion occludingRegion = container == null
+                    ? null : container.getOccludingRegion(camera.getPosition());
 
             // TODO: Redo to swap to main fog instead of just getting rid of it
             if (occludingRegion != null && Sable.HELPER.getContaining(this.subLevel.getLevel(), occludingRegion.getVolume().getMinBlockPos()) == this.subLevel) {
@@ -326,16 +364,26 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             shader.MODEL_VIEW_MATRIX.set(modelView.mul(transform, MODEL_MATRIX));
             shader.MODEL_VIEW_MATRIX.upload();
 
-            if (IrisCompat.isLoaded()) {
-                SableIrisCompat.refreshModelMatrices(shader);
-            }
+        }
+
+        if (LIGHT_DRAW_TRACES_WRITTEN.getAndIncrement() < LIGHT_DRAW_TRACE_LIMIT) {
+            final Matrix3f baseAxes = new Matrix3f(modelView);
+            final Matrix3f submittedAxes = new Matrix3f(MODEL_MATRIX);
+            final Matrix3f recoveredObjectAxes = new Matrix3f(baseAxes).invert().mul(submittedAxes);
+            LOGGER.info("[SABLE-LIGHTMAP-DRAW] shader={} skyScale={}/15 pos=[{},{},{}] rotation=[{},{},{},{}] " +
+                            "baseDet={} submittedDet={} recoveredDet={}",
+                    shader.getName(), this.subLevel.getLatestSkyLightScale(),
+                    renderPos.x(), renderPos.y(), renderPos.z(),
+                    renderRot.x(), renderRot.y(), renderRot.z(), renderRot.w(),
+                    baseAxes.determinant(), submittedAxes.determinant(), recoveredObjectAxes.determinant());
         }
 
         // TODO: sorting
         final Uniform chunkOffsetUniform = shader.CHUNK_OFFSET;
 
-        for (final SectionRenderDispatcher.RenderSection renderSection : this.allRenderSections) {
-            if (renderSection.getCompiled().isEmpty(layer)) {
+        int draws = 0;
+        for (final ChunkRenderDispatcher.RenderChunk renderSection : this.allRenderSections) {
+            if (renderSection.getCompiledChunk().isEmpty(layer)) {
                 continue;
             }
 
@@ -349,6 +397,7 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             final VertexBuffer buffer = renderSection.getBuffer(layer);
             buffer.bind();
             buffer.draw();
+            draws++;
         }
 
         if (chunkOffsetUniform != null) {
@@ -358,20 +407,21 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
         if (oldFogColor != null) {
             shader.FOG_COLOR.set(oldFogColor[0], oldFogColor[1], oldFogColor[2], oldFogColor[3]);
         }
+        return draws;
     }
 
     @Override
     public void close() {
-        for (final SectionRenderDispatcher.RenderSection section : this.allRenderSections) {
+        for (final ChunkRenderDispatcher.RenderChunk section : this.allRenderSections) {
             section.releaseBuffers();
             section.updateGlobalBlockEntities(Set.of());
-            section.setCompiled(SectionRenderDispatcher.CompiledSection.EMPTY);
+            section.compiled.set(ChunkRenderDispatcher.CompiledChunk.UNCOMPILED);
         }
         this.allRenderSections.clear();
         this.renderSections = null;
     }
 
-    public SectionRenderDispatcher.RenderSection getRenderSection(final SectionPos sectionPos) {
+    public ChunkRenderDispatcher.RenderChunk getRenderSection(final SectionPos sectionPos) {
         if (this.renderSections == null) {
             return null;
         }

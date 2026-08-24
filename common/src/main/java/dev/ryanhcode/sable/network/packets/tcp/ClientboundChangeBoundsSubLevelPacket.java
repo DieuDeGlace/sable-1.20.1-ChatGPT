@@ -8,11 +8,10 @@ import dev.ryanhcode.sable.network.tcp.SableTCPPacket;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.plot.LevelPlot;
 import dev.ryanhcode.sable.util.SableBufferUtils;
-import foundry.veil.api.network.handler.PacketContext;
+import dev.ryanhcode.sable.network.tcp.PacketContext;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.tcp.CustomPacketPayload;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 
@@ -21,8 +20,8 @@ import java.util.Objects;
 public record ClientboundChangeBoundsSubLevelPacket(long plotCoordinate,
                                                     BoundingBox3ic bounds) implements SableTCPPacket {
 
-    public static final Type<ClientboundChangeBoundsSubLevelPacket> TYPE = new CustomPacketPayload.Type<>(Sable.sablePath("change_bounds_sublevel"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundChangeBoundsSubLevelPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ClientboundChangeBoundsSubLevelPacket::read);
+    public static final Type<ClientboundChangeBoundsSubLevelPacket> TYPE = new CustomPacketPayload.Type<>(Sable.sablePath("change_bounds_sublevel"), ClientboundChangeBoundsSubLevelPacket.class);
+    public static final StreamCodec<FriendlyByteBuf, ClientboundChangeBoundsSubLevelPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ClientboundChangeBoundsSubLevelPacket::read);
 
     private static ClientboundChangeBoundsSubLevelPacket read(final FriendlyByteBuf buf) {
         return new ClientboundChangeBoundsSubLevelPacket(buf.readLong(), SableBufferUtils.read(buf, new BoundingBox3i()));

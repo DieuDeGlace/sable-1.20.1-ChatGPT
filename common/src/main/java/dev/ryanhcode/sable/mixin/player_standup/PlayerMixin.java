@@ -10,11 +10,11 @@ import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-@Mixin(Player.class)
+@Mixin(Entity.class)
 public class PlayerMixin {
 
     @WrapOperation(
-            method = "canPlayerFitWithinBlocksAndEntitiesWhen",
+            method = "canEnterPose",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/level/Level;noCollision(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Z"
@@ -23,6 +23,12 @@ public class PlayerMixin {
     private boolean sable$noCollisionWithSubLevels(final Level instance, final Entity entity, final AABB aabb, final Operation<Boolean> original) {
         if (!original.call(instance, entity, aabb)) {
             return false;
+        }
+
+        // In 1.20.1 the fit test is declared by Entity rather than Player.
+        // Keep the upstream player-only scope when adapting that call site.
+        if (!((Object) this instanceof Player)) {
+            return true;
         }
 
         // If vanilla says no collision, also check sublevel blocks.

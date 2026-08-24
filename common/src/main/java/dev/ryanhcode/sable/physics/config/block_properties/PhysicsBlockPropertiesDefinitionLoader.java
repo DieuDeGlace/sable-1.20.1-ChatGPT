@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
-import dev.ryanhcode.sable.Sable;
+import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.mixinterface.block_properties.BlockStateExtension;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
@@ -27,10 +27,12 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
 
 public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceReloadListener {
+    private static final Logger LOGGER = LogUtils.getLogger();
     public static final String NAME = "physics_block_properties";
-    public static final ResourceLocation ID = Sable.sablePath(NAME);
+    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath("sable", NAME);
 
     protected static final Gson GSON = new Gson();
     public static final PhysicsBlockPropertiesDefinitionLoader INSTANCE = new PhysicsBlockPropertiesDefinitionLoader();
@@ -61,7 +63,7 @@ public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceRe
             });
 
             decoded.error().ifPresent(error -> {
-                Sable.LOGGER.error("Error while loading physics block properties entry: {}", error);
+                LOGGER.error("Error while loading physics block properties entry: {}", error);
             });
         }
 
@@ -90,7 +92,7 @@ public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceRe
                     blocks.add(block);
                 }
             } else {
-                Sable.LOGGER.error("Failed to apply tag physics properties. Unknown tag: {}", selector.id());
+                LOGGER.error("Failed to apply tag physics properties. Unknown tag: {}", selector.id());
             }
         } else {
             if (BuiltInRegistries.BLOCK.containsKey(selector.id())) {
@@ -98,7 +100,7 @@ public class PhysicsBlockPropertiesDefinitionLoader extends SimpleJsonResourceRe
                 final Block block = BuiltInRegistries.BLOCK.get(selector.id());
                 blocks.add(block);
             } else {
-                Sable.LOGGER.error("Failed to apply tag physics properties. Unknown block: {}", selector.id());
+                LOGGER.error("Failed to apply tag physics properties. Unknown block: {}", selector.id());
             }
         }
 

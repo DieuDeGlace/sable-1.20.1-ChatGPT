@@ -5,7 +5,7 @@ import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.network.packets.tcp.ServerboundGizmoMoveSubLevelPacket;
 import dev.ryanhcode.sable.sublevel.SubLevel;
-import foundry.veil.api.network.VeilPacketManager;
+import dev.ryanhcode.sable.network.tcp.SablePacketManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -95,7 +95,7 @@ public class GizmoScreen extends Screen {
                 subLevelPos.fma(-subLevelPos.dot(dragNormal), dragNormal, subLevelPos);
                 subLevelPos.fma(hitPos.dot(dragNormal), dragNormal, subLevelPos);
 
-                VeilPacketManager.server().sendPacket(new ServerboundGizmoMoveSubLevelPacket(this.activeSelection.subLevel(), subLevelPos));
+                SablePacketManager.server().sendPacket(new ServerboundGizmoMoveSubLevelPacket(this.activeSelection.subLevel(), subLevelPos));
             }
         }
 

@@ -1,6 +1,7 @@
 package dev.ryanhcode.sable.network.packets.udp;
 
 import dev.ryanhcode.sable.mixinterface.udp.ConnectionExtension;
+import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.network.udp.AddressedSableUDPPacket;
 import dev.ryanhcode.sable.network.udp.SableUDPPacket;
 import dev.ryanhcode.sable.network.udp.SableUDPPacketType;
@@ -9,14 +10,14 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.Connection;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
 import net.minecraft.world.level.Level;
 
 import java.net.InetSocketAddress;
 
 public record SableUDPClientboundKeepAlivePacket() implements SableUDPPacket {
-    public static final StreamCodec<RegistryFriendlyByteBuf, SableUDPClientboundKeepAlivePacket> CODEC = StreamCodec.of((buf, value) -> {}, buf -> new SableUDPClientboundKeepAlivePacket());
+    public static final StreamCodec<FriendlyByteBuf, SableUDPClientboundKeepAlivePacket> CODEC = StreamCodec.of((buf, value) -> {}, buf -> new SableUDPClientboundKeepAlivePacket());
 
     @Override
     public SableUDPPacketType getType() {

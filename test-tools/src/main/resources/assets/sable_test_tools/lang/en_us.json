@@ -1,0 +1,7 @@
+{
+  "item.sable_test_tools.selection_wand": "Sable Test Wand",
+  "item.sable_test_tools.selection_wand.tooltip": "Left-click point 1, right-click point 2",
+  "item.sable_test_tools.gravity_gun": "Sable Gravity Gun",
+  "item.sable_test_tools.gravity_gun.tooltip": "Right-click grab/drop, left-click launch",
+  "item.sable_test_tools.gravity_gun.tooltip_alt": "Sneak-right-click also launches"
+}

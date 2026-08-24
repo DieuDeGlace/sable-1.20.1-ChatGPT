@@ -7,7 +7,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -22,7 +22,7 @@ import java.util.Set;
 /**
  * Fixes distance check used for priority and chunk building to take sublevels into account
  */
-@Mixin(SectionRenderDispatcher.RenderSection.class)
+@Mixin(ChunkRenderDispatcher.RenderChunk.class)
 public class RenderSectionMixin implements RenderSectionExtension {
 
     @Shadow
@@ -40,7 +40,7 @@ public class RenderSectionMixin implements RenderSectionExtension {
         if (this.sable$listening && !this.dirty && this.sable$listeners != null) {
             VeilRenderSystem.renderThreadExecutor().execute(() -> {
                 for (final DirtyListener listener : this.sable$listeners) {
-                    listener.markDirty((SectionRenderDispatcher.RenderSection) (Object) this);
+                    listener.markDirty((ChunkRenderDispatcher.RenderChunk) (Object) this);
                 }
             });
         }

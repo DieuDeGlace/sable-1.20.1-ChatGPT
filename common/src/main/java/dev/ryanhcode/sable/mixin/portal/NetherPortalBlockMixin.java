@@ -5,23 +5,22 @@ import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.SubLevelHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(NetherPortalBlock.class)
+@Mixin(Entity.class)
 public class NetherPortalBlockMixin {
 
-    @Redirect(method = "getPortalDestination", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/border/WorldBorder;clampToBounds(DDD)Lnet/minecraft/core/BlockPos;"))
+    @Redirect(method = "findDimensionEntryPoint", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/border/WorldBorder;clampToBounds(DDD)Lnet/minecraft/core/BlockPos;"))
     private BlockPos sable$getPortalDestination(final WorldBorder instance,
                                                 final double x,
                                                 final double y,
                                                 final double z,
-                                                @Local(argsOnly = true) final Entity entity,
                                                 @Local(ordinal = 0) final double multiplier) {
+        final Entity entity = (Entity) (Object) this;
         final Vec3 position = new Vec3(entity.getX(), entity.getY(), entity.getZ());
 
         final Vec3 globalPos = Sable.HELPER.projectOutOfSubLevel(entity.level(), position);

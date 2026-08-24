@@ -209,6 +209,12 @@ public class SubLevelEntityShadowRenderer {
 
     private static void shadowVertex(final PoseStack.Pose pose, final VertexConsumer vertexConsumer, final int i, final float f, final float g, final float h, final float j, final float k) {
         final Vector3f vector3f = pose.pose().transformPosition(f, g, h, RENDER_POSITION);
-        vertexConsumer.addVertex(vector3f.x(), vector3f.y(), vector3f.z(), i, j, k, OverlayTexture.NO_OVERLAY, LightTexture.FULL_BRIGHT, 0.0F, 1.0F, 0.0F);
+        vertexConsumer.vertex(vector3f.x(), vector3f.y(), vector3f.z())
+                .color(i)
+                .uv(j, k)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(LightTexture.FULL_BRIGHT)
+                .normal(0.0F, 1.0F, 0.0F)
+                .endVertex();
     }
 }

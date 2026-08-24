@@ -1,0 +1,57 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev.legacyforge' version '2.0.107'
+}
+
+group = 'dev.sabletesttools'
+version = '1.1.2'
+
+base {
+    archivesName = 'sable-test-tools-forge-1.20.1'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
+}
+
+legacyForge {
+    version = '1.20.1-47.4.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+def sableJar = file('../forge/build/libs/sable-forge-1.20.1-2.0.5-port.1.jar')
+
+dependencies {
+    if (!sableJar.isFile()) {
+        throw new GradleException("Build the local Sable port first: ${sableJar}")
+    }
+    implementation files(sableJar)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') {
+        expand version: project.version
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+                'Specification-Title': 'Sable Test Tools',
+                'Specification-Version': project.version,
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Built-On-Minecraft': '1.20.1'
+        )
+    }
+}

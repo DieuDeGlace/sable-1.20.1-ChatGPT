@@ -1,6 +1,6 @@
 package dev.ryanhcode.sable.mixinterface.sublevel_render.vanilla;
 
-import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 
 public interface RenderSectionExtension {
 
@@ -11,6 +11,6 @@ public interface RenderSectionExtension {
     @FunctionalInterface
     interface DirtyListener {
 
-        void markDirty(SectionRenderDispatcher.RenderSection section);
+        void markDirty(ChunkRenderDispatcher.RenderChunk section);
     }
 }

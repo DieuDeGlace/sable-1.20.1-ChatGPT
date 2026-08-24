@@ -1,21 +1,22 @@
 package dev.ryanhcode.sable.network.packets.tcp;
 
-import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.network.tcp.SableTCPPacket;
 import dev.ryanhcode.sable.physics.config.FloatingBlockMaterialDataHandler;
 import dev.ryanhcode.sable.physics.floating_block.FloatingBlockMaterial;
-import foundry.veil.api.network.handler.PacketContext;
+import dev.ryanhcode.sable.network.tcp.PacketContext;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.codec.ByteBufCodecs;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.tcp.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 public record ClientboundFloatingBlockMaterialPacket(ResourceLocation name, FloatingBlockMaterial material) implements SableTCPPacket {
-    public static final Type<ClientboundFloatingBlockMaterialPacket> TYPE = new CustomPacketPayload.Type<>(Sable.sablePath("floating_material"));
+    public static final Type<ClientboundFloatingBlockMaterialPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath("sable", "floating_material"), ClientboundFloatingBlockMaterialPacket.class);
 
     public static final StreamCodec<ByteBuf, ClientboundFloatingBlockMaterialPacket> CODEC = StreamCodec.composite(
-            ResourceLocation.STREAM_CODEC, ClientboundFloatingBlockMaterialPacket::name,
+            ByteBufCodecs.RESOURCE_LOCATION, ClientboundFloatingBlockMaterialPacket::name,
             FloatingBlockMaterial.STREAM_CODEC, ClientboundFloatingBlockMaterialPacket::material,
             ClientboundFloatingBlockMaterialPacket::new
     );

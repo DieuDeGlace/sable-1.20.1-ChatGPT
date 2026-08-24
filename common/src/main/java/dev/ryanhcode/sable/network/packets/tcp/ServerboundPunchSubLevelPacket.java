@@ -15,14 +15,13 @@ import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.system.SubLevelPhysicsSystem;
 import dev.ryanhcode.sable.util.SableBufferUtils;
-import foundry.veil.api.network.handler.PacketContext;
+import dev.ryanhcode.sable.network.tcp.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.tcp.CustomPacketPayload;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -43,8 +42,8 @@ import java.util.Objects;
  */
 public record ServerboundPunchSubLevelPacket(BlockPos punchedBlock, Vector3dc localPosition,
                                              Vector3dc direction) implements SableTCPPacket {
-    public static final Type<ServerboundPunchSubLevelPacket> TYPE = new Type<>(Sable.sablePath("punch_sub_level"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, ServerboundPunchSubLevelPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ServerboundPunchSubLevelPacket::read);
+    public static final Type<ServerboundPunchSubLevelPacket> TYPE = new Type<>(Sable.sablePath("punch_sub_level"), ServerboundPunchSubLevelPacket.class);
+    public static final StreamCodec<FriendlyByteBuf, ServerboundPunchSubLevelPacket> CODEC = StreamCodec.of((buf, value) -> value.write(buf), ServerboundPunchSubLevelPacket::read);
 
     private static ServerboundPunchSubLevelPacket read(final FriendlyByteBuf buf) {
         return new ServerboundPunchSubLevelPacket(
@@ -74,7 +73,9 @@ public record ServerboundPunchSubLevelPacket(BlockPos punchedBlock, Vector3dc lo
         }
 
         final Player player = context.player();
-        if (!player.onGround() && !player.isInWater() && !player.getAbilities().flying && !player.onClimbable()) return;
+        if (!player.onGround() && !player.isInWater() && !player.getAbilities().flying && !player.onClimbable()) {
+            return;
+        }
 
         final ServerSubLevel standingSubLevel = (ServerSubLevel) Sable.HELPER.getTrackingSubLevel(player);
 
@@ -82,7 +83,9 @@ public record ServerboundPunchSubLevelPacket(BlockPos punchedBlock, Vector3dc lo
         final SubLevel targetSubLevel = Sable.HELPER.getContaining(level, this.punchedBlock);
 
         // Let's not let people punch the same sub-level they're standing on
-        if (standingSubLevel == targetSubLevel) return;
+        if (standingSubLevel == targetSubLevel) {
+            return;
+        }
 
         final Vector3d localHitPosition = new Vector3d(this.localPosition);
         final Vector3d globalDirection = new Vector3d(this.direction).normalize();
@@ -105,7 +108,7 @@ public record ServerboundPunchSubLevelPacket(BlockPos punchedBlock, Vector3dc lo
         }
         player.getCooldowns().addCooldown(player.getMainHandItem().getItem(), customCooldown);
 
-        final double downwardStrengthMultiplier = SableConfig.SUB_LEVEL_PUNCH_DOWNWARD_STRENGTH_MULTIPLIER.getAsDouble();
+        final double downwardStrengthMultiplier = SableConfig.SUB_LEVEL_PUNCH_DOWNWARD_STRENGTH_MULTIPLIER.get();
 
         if (globalDirection.y < 0.0) {
             globalDirection.mul(1.0, downwardStrengthMultiplier, 1.0);
@@ -216,7 +219,7 @@ public record ServerboundPunchSubLevelPacket(BlockPos punchedBlock, Vector3dc lo
 
         final double generalizedInverseMass = massTracker.getInverseNormalMass(localPosition, localDirection);
         final double mass = 1.0 / generalizedInverseMass;
-        final double strengthMultiplier = SableConfig.SUB_LEVEL_PUNCH_STRENGTH_MULTIPLIER.getAsDouble();
+        final double strengthMultiplier = SableConfig.SUB_LEVEL_PUNCH_STRENGTH_MULTIPLIER.get();
 
         return punchCurve(mass) * strengthMultiplier;
     }

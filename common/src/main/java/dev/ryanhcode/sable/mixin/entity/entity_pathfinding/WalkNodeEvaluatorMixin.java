@@ -8,6 +8,7 @@ import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.NodeEvaluator;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
@@ -62,6 +63,21 @@ public abstract class WalkNodeEvaluatorMixin extends NodeEvaluator {
     @Redirect(method = "getStart", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;blockPosition()Lnet/minecraft/core/BlockPos;"))
     private BlockPos sable$redirectBlockPosition(final Mob mob, @Share("mobPosition") final LocalRef<Vec3> mobPosition) {
         return BlockPos.containing(mobPosition.get());
+    }
+
+    /*
+     * 1.20.1 passes Mob.blockPosition() directly to getBlockPathTypes as the
+     * context position.  1.21 moved that value into PathfindingContext, which
+     * is why the upstream PathfindingContextMixin has no target here.
+     */
+    @Redirect(method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;blockPosition()Lnet/minecraft/core/BlockPos;"))
+    private BlockPos sable$redirectPathTypeMobPosition(final Mob mob) {
+        final SubLevel trackingSubLevel = this.sable$getTrackingSubLevel();
+        if (trackingSubLevel == null) {
+            return mob.blockPosition();
+        }
+        return BlockPos.containing(trackingSubLevel.logicalPose().transformPositionInverse(mob.position()));
     }
 
 

@@ -45,9 +45,9 @@ public class SableUDPChannelHandlerClient extends SimpleChannelInboundHandler<Ad
     @Override
     protected void channelRead0(final ChannelHandlerContext ctx, final AddressedSableUDPPacket msg) throws Exception {
         final Minecraft client = Minecraft.getInstance();
-
         SableClient.NETWORK_EVENT_LOOP.tell(() -> {
             msg.packet().handleClient(client.level);
         });
     }
+
 }

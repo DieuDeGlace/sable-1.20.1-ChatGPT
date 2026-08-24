@@ -6,7 +6,7 @@ import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.render.dispatcher.ReachAroundSubLevelRenderDispatcher;
 import dev.ryanhcode.sable.sublevel.render.dispatcher.SubLevelRenderDispatcher;
 import dev.ryanhcode.sable.sublevel.render.dispatcher.VanillaSubLevelRenderDispatcher;
-import foundry.veil.api.compat.SodiumCompat;
+import foundry.veil.Veil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 
@@ -78,7 +78,7 @@ public final class SubLevelRenderer {
         VANILLA {
             @Override
             public boolean isSupported() {
-                return !SodiumCompat.isLoaded();
+                return !isEmbeddiumLoaded();
             }
 
             @Override
@@ -89,7 +89,7 @@ public final class SubLevelRenderer {
         SODIUM_REACHAROUND {
             @Override
             public boolean isSupported() {
-                return SodiumCompat.isLoaded();
+                return isEmbeddiumLoaded();
             }
 
             @Override
@@ -97,6 +97,10 @@ public final class SubLevelRenderer {
                 return new ReachAroundSubLevelRenderDispatcher();
             }
         };
+
+        private static boolean isEmbeddiumLoaded() {
+            return Veil.platform().isModLoaded("embeddium");
+        }
 
         public abstract boolean isSupported();
 

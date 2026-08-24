@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import dev.ryanhcode.sable.ActiveSableCompanion;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.sublevel.SubLevel;
-import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
@@ -17,7 +16,7 @@ import org.spongepowered.asm.mixin.Mixin;
 public class VibrationSystemListenerMixin {
 
     @WrapMethod(method = "scheduleVibration")
-    private void sable$useGlobalPos(final ServerLevel level, final VibrationSystem.Data data, final Holder<GameEvent> gameEvent, final GameEvent.Context context, final Vec3 pos, final Vec3 sensorPos, final Operation<Void> original) {
+    private void sable$useGlobalPos(final ServerLevel level, final VibrationSystem.Data data, final GameEvent gameEvent, final GameEvent.Context context, final Vec3 pos, final Vec3 sensorPos, final Operation<Void> original) {
         original.call(level, data, gameEvent, context, Sable.HELPER.projectOutOfSubLevel(level, pos), Sable.HELPER.projectOutOfSubLevel(level, sensorPos));
     }
 

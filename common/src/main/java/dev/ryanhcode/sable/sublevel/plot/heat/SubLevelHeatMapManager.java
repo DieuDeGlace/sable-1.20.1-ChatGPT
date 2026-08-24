@@ -80,7 +80,7 @@ public class SubLevelHeatMapManager {
      * Ticks the heatmap manager, performing {@link SableConfig#SUB_LEVEL_SPLITTING_HEATMAP_STEPS_PER_TICK} steps
      */
     public void tick() {
-        final int steps = SableConfig.SUB_LEVEL_SPLITTING_HEATMAP_STEPS_PER_TICK.getAsInt();
+        final int steps = SableConfig.SUB_LEVEL_SPLITTING_HEATMAP_STEPS_PER_TICK.get();
         for (int i = 0; i < steps; i++) {
             if (this.step()) break;
         }
@@ -92,8 +92,8 @@ public class SubLevelHeatMapManager {
     private boolean step() {
         if (this.state == HeatMapPropagationState.FILLING) {
             if (!this.floodfill.isEmpty()) {
-                final BlockPos p = new BlockPos(this.floodfill.getFirst());
-                this.floodfill.removeFirst();
+                final BlockPos p = new BlockPos(this.floodfill.get(0));
+                this.floodfill.remove(0);
                 if (this.heatMapContains(p)) {
                     final int currentHeat = this.heatMapGet(p);
                     for (final BlockPos dir : DIRECTION_OFFSETS) {
@@ -120,8 +120,8 @@ public class SubLevelHeatMapManager {
         }
         if (this.state == HeatMapPropagationState.CLEARING) {
             if (!this.floodfill.isEmpty()) {
-                final BlockPos p = new BlockPos(this.floodfill.getFirst());
-                this.floodfill.removeFirst();
+                final BlockPos p = new BlockPos(this.floodfill.get(0));
+                this.floodfill.remove(0);
                 if (this.heatMapContains(p)) {
                     final int currentHeat = this.heatMapGet(p);
                     final int currentIndex = this.splitIndexMap.getInt(this.subLevelSplits.get(p.asLong()));

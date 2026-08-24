@@ -4,67 +4,93 @@ import com.mojang.blaze3d.shaders.FogShape;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
+import dev.ryanhcode.sable.companion.math.Pose3dc;
 import dev.ryanhcode.sable.index.SableTags;
 import dev.ryanhcode.sable.mixinterface.BlockEntityRenderDispatcherExtension;
-import dev.ryanhcode.sable.mixinterface.dynamic_directional_shading.ModelBlockRendererCacheExtension;
-import dev.ryanhcode.sable.render.sky_light_shadow.SableDynamicSkyLightShadowPreProcessor;
-import dev.ryanhcode.sable.render.sky_light_shadow.SableSkyLightShadows;
+import dev.ryanhcode.sable.render.dynamic_shade.SableDynamicDirectionalShading;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.render.SubLevelRenderData;
 import dev.ryanhcode.sable.sublevel.render.vanilla.VanillaChunkedSubLevelRenderData;
 import dev.ryanhcode.sable.sublevel.render.vanilla.VanillaSingleSubLevelRenderData;
 import foundry.veil.api.client.render.CullFrustum;
-import foundry.veil.api.client.render.MatrixStack;
-import foundry.veil.api.client.render.VeilRenderBridge;
-import foundry.veil.api.client.render.profiler.RenderProfilerCounter;
-import foundry.veil.api.client.render.profiler.VeilRenderProfiler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.PrioritizeChunkUpdates;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.chunk.RenderRegionCache;
-import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
+import org.slf4j.Logger;
 
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.SequencedSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher {
 
-    private final SequencedSet<RenderType> singleBlockLayers;
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Set<String> LOGGED_BLOCK_ENTITY_PATHS = ConcurrentHashMap.newKeySet();
+    private static final Set<String> LOGGED_DYNAMIC_SHADE_SHADERS = ConcurrentHashMap.newKeySet();
+
+    private final Set<RenderType> singleBlockLayers;
 
     public VanillaSubLevelRenderDispatcher() {
         this.singleBlockLayers = new LinkedHashSet<>();
     }
 
-    public static void setupDynamicEffects(final ShaderInstance shader, final boolean onSubLevel, final boolean upload) {
+    public static void setupDynamicEffects(final ShaderInstance shader, final boolean onSubLevel, final boolean upload,
+                                           final @Nullable Matrix4fc baseModelView) {
+        final boolean enableDynamicShading = onSubLevel && SableDynamicDirectionalShading.isEnabled();
         final Uniform sableEnableNormalLighting = shader.getUniform("SableEnableNormalLighting");
-        final Uniform sableEnableSkyLightShadows = shader.getUniform(SableDynamicSkyLightShadowPreProcessor.ENABLE_UNIFORM);
-
         if (sableEnableNormalLighting != null) {
-            sableEnableNormalLighting.set(onSubLevel ? 1.0F : 0.0F);
+            sableEnableNormalLighting.set(enableDynamicShading ? 1.0F : 0.0F);
             if (upload) {
                 sableEnableNormalLighting.upload();
             }
         }
 
-        if (sableEnableSkyLightShadows != null) {
-            sableEnableSkyLightShadows.set(onSubLevel || !SableSkyLightShadows.isEnabled() ? 0.0F : 1.0F);
-            if (upload) {
-                sableEnableSkyLightShadows.upload();
+        if (onSubLevel) {
+            final String shaderPath = shader.getName() + ":" + (sableEnableNormalLighting != null);
+            if (LOGGED_DYNAMIC_SHADE_SHADERS.add(shaderPath)) {
+                LOGGER.info("[SABLE-DYNAMIC-SHADE-SHADER] shader={} enabled={} uniformPresent={}",
+                        shader.getName(), enableDynamicShading, sableEnableNormalLighting != null);
+            }
+        }
+
+        if (enableDynamicShading && sableEnableNormalLighting != null && baseModelView != null) {
+            final Uniform inverseNormalMatrix = shader.getUniform("SableInverseNormalMat");
+            if (inverseNormalMatrix != null) {
+                inverseNormalMatrix.set(new Matrix4f(baseModelView).normal(new Matrix3f()).invert());
+                if (upload) {
+                    inverseNormalMatrix.upload();
+                }
+            }
+
+            final Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.level != null) {
+                setFloat(shader, "SableShadeDown", minecraft.level.getShade(Direction.DOWN, true), upload);
+                setFloat(shader, "SableShadeUp", minecraft.level.getShade(Direction.UP, true), upload);
+                setFloat(shader, "SableShadeNorth", minecraft.level.getShade(Direction.NORTH, true), upload);
+                setFloat(shader, "SableShadeSouth", minecraft.level.getShade(Direction.SOUTH, true), upload);
+                setFloat(shader, "SableShadeWest", minecraft.level.getShade(Direction.WEST, true), upload);
+                setFloat(shader, "SableShadeEast", minecraft.level.getShade(Direction.EAST, true), upload);
             }
         }
 
@@ -75,6 +101,18 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
             if (upload) {
                 sableSkyLightScale.upload();
             }
+        }
+    }
+
+    private static void setFloat(final ShaderInstance shader, final String name, final float value,
+                                 final boolean upload) {
+        final Uniform uniform = shader.getUniform(name);
+        if (uniform == null) {
+            return;
+        }
+        uniform.set(value);
+        if (upload) {
+            uniform.upload();
         }
     }
 
@@ -123,7 +161,7 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
             return new VanillaSingleSubLevelRenderData(subLevel);
         }
 
-        final SectionRenderDispatcher sectionRenderDispatcher = Minecraft.getInstance().levelRenderer.getSectionRenderDispatcher();
+        final ChunkRenderDispatcher sectionRenderDispatcher = Minecraft.getInstance().levelRenderer.getChunkRenderDispatcher();
         return new VanillaChunkedSubLevelRenderData(subLevel, sectionRenderDispatcher);
     }
 
@@ -141,28 +179,27 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
             shader.FOG_SHAPE.upload();
         }
 
-        VanillaSubLevelRenderDispatcher.setupDynamicEffects(shader, true, true);
+        VanillaSubLevelRenderDispatcher.setupDynamicEffects(shader, true, true, modelView);
 
-        final VeilRenderProfiler profiler = VeilRenderProfiler.get();
-        profiler.push("sublevel_render", RenderProfilerCounter.STANDARD_GEOMETRY);
         for (final ClientSubLevel sublevel : sublevels) {
             final SubLevelRenderData data = sublevel.getRenderData();
 
             // We'll render the single block sub-levels in a pass afterward
             if (!(data instanceof final VanillaChunkedSubLevelRenderData chunkedRenderData)) {
-                this.singleBlockLayers.addLast(renderType);
+                this.singleBlockLayers.remove(renderType);
+                this.singleBlockLayers.add(renderType);
                 continue;
             }
 
-            chunkedRenderData.renderChunkedSubLevel(renderType, shader, modelView, cameraX, cameraY, cameraZ);
+            chunkedRenderData.renderChunkedSubLevel(
+                    renderType, shader, modelView, cameraX, cameraY, cameraZ);
         }
-        profiler.pop();
 
         if (shader.FOG_SHAPE != null && fogShape != FogShape.SPHERE) {
             shader.FOG_SHAPE.set(fogShape.getIndex());
         }
 
-        VanillaSubLevelRenderDispatcher.setupDynamicEffects(shader, false, false);
+        VanillaSubLevelRenderDispatcher.setupDynamicEffects(shader, false, false, null);
     }
 
     @Override
@@ -171,87 +208,133 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
             return;
         }
 
-        final ModelBlockRendererCacheExtension ext = (ModelBlockRendererCacheExtension) ModelBlockRenderer.CACHE.get();
-        ext.sable$setOnSubLevel(true);
+        SableDynamicDirectionalShading.setCompilingSubLevel(true);
+        try {
+            for (final RenderType layer : this.singleBlockLayers) {
+                final BufferBuilder consumer = Tesselator.getInstance().getBuilder();
+                consumer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
 
-        final VeilRenderProfiler profiler = VeilRenderProfiler.get();
-        profiler.push("sublevel_render_single", RenderProfilerCounter.STANDARD_GEOMETRY);
-        for (final RenderType layer : this.singleBlockLayers) {
-            final BufferBuilder consumer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                SableDynamicDirectionalShading.beginLightTrace("single:" + layer);
+                try {
+                    for (final ClientSubLevel sublevel : sublevels) {
+                        final SubLevelRenderData data = sublevel.getRenderData();
 
-            for (final ClientSubLevel sublevel : sublevels) {
-                final SubLevelRenderData data = sublevel.getRenderData();
+                        if (!(data instanceof final VanillaSingleSubLevelRenderData singleRenderData)) {
+                            continue;
+                        }
 
-                if (!(data instanceof final VanillaSingleSubLevelRenderData singleRenderData)) {
-                    continue;
+                        singleRenderData.renderSingleBlock(layer, consumer, modelView, cameraX, cameraY, cameraZ);
+                    }
+                } finally {
+                    SableDynamicDirectionalShading.endLightTrace();
                 }
 
-                singleRenderData.renderSingleBlock(layer, consumer, modelView, cameraX, cameraY, cameraZ);
+                final BufferBuilder.RenderedBuffer renderedBuffer = consumer.endOrDiscardIfEmpty();
+                if (renderedBuffer != null) {
+                    // Set up the state so the shader instance is updated
+                    layer.setupRenderState();
+
+                    final ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
+                    if (shader.MODEL_VIEW_MATRIX != null) shader.MODEL_VIEW_MATRIX.set(modelView);
+                    if (shader.PROJECTION_MATRIX != null) shader.PROJECTION_MATRIX.set(projection);
+                    if (shader.SCREEN_SIZE != null) shader.SCREEN_SIZE.set(
+                            Minecraft.getInstance().getWindow().getWidth(), Minecraft.getInstance().getWindow().getHeight());
+                    shader.apply();
+                    setupDynamicEffects(shader, true, true, modelView);
+
+                    BufferUploader.drawWithShader(renderedBuffer);
+
+                    setupDynamicEffects(shader, false, true, null);
+
+                    // RenderType owns shader binding, so its clear is the matching teardown.
+                    layer.clearRenderState();
+                }
             }
-
-            final MeshData meshData = consumer.build();
-            if (meshData != null) {
-                // Set up the state so the shader instance is updated
-                layer.setupRenderState();
-
-                final ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
-                shader.setDefaultUniforms(VertexFormat.Mode.QUADS, modelView, projection, Minecraft.getInstance().getWindow());
-                shader.apply();
-                setupDynamicEffects(shader, true, true);
-
-                layer.draw(meshData);
-
-                // Match every setup with a clear
-                layer.clearRenderState();
-
-                setupDynamicEffects(shader, false, false);
-                shader.clear();
-            }
+        } finally {
+            SableDynamicDirectionalShading.setCompilingSubLevel(false);
+            this.singleBlockLayers.clear();
         }
-        profiler.pop();
-
-        ext.sable$setOnSubLevel(false);
-
-        this.singleBlockLayers.clear();
     }
 
     @Override
     public void renderBlockEntities(final Iterable<ClientSubLevel> sublevels, final BlockEntityRenderer blockEntityRenderer, final double cameraX, final double cameraY, final double cameraZ, final float partialTick) {
-        final Vector3f cameraPosition = new Vector3f();
+        this.renderBlockEntities(sublevels, blockEntityRenderer, cameraX, cameraY, cameraZ,
+                partialTick, new Matrix4f());
+    }
+
+    /**
+     * Minecraft 1.20.1 supplies camera rotation through the LevelRenderer PoseStack.
+     * Forge render-stage adapters must preserve that base view matrix before applying a
+     * sub-level's physical transform; starting from identity submits block entities in
+     * untranslated camera axes and makes them disappear as the view rotates.
+     */
+    public void renderBlockEntities(final Iterable<ClientSubLevel> sublevels,
+                                    final BlockEntityRenderer blockEntityRenderer,
+                                    final double cameraX, final double cameraY, final double cameraZ,
+                                    final float partialTick, final Matrix4fc baseModelView) {
         final Vector3d chunkOffset = new Vector3d();
-        final Matrix4f transformation = new Matrix4f();
-        final Matrix4f transformationInverse = new Matrix4f();
         final BlockEntityRenderDispatcherExtension dispatcher = (BlockEntityRenderDispatcherExtension) blockEntityRenderer.getBlockEntityRenderDispatcher();
         final PoseStack matrices = new PoseStack();
-        final MatrixStack matrixStack = VeilRenderBridge.create(matrices);
+        final Vec3 cameraPosition = new Vec3(cameraX, cameraY, cameraZ);
 
         for (final ClientSubLevel sublevel : sublevels) {
             final SubLevelRenderData data = sublevel.getRenderData();
+            final Pose3dc renderPose = sublevel.renderPose();
 
-            sublevel.renderPose().rotationPoint().negate(chunkOffset.zero());
-            data.getTransformation(cameraX, cameraY, cameraZ, transformation);
+            renderPose.rotationPoint().negate(chunkOffset.zero());
 
-            transformation.invert(transformationInverse).transformPosition(cameraPosition.zero());
-            dispatcher.sable$setCameraPosition(new Vec3(cameraPosition.x - chunkOffset.x(), cameraPosition.y - chunkOffset.y(), cameraPosition.z - chunkOffset.z()));
+            // Do not recover the local camera by inverting a float matrix whose
+            // translation is based on Sable's ~20,000,000-block plot coordinates.
+            // That loses whole-block precision. Pose3d performs the inverse in
+            // doubles and produces the exact coordinate used by shouldRender().
+            final Vec3 localCamera = renderPose.transformPositionInverse(cameraPosition);
+            dispatcher.sable$setCameraPosition(localCamera);
 
-            matrixStack.clear();
-            matrices.mulPose(transformation);
+            matrices.last().pose().set(baseModelView);
+            matrices.last().normal().set(new org.joml.Matrix3f(baseModelView));
+            matrices.translate(renderPose.position().x() - cameraX,
+                    renderPose.position().y() - cameraY,
+                    renderPose.position().z() - cameraZ);
+            matrices.mulPose(new Quaternionf(renderPose.orientation()));
+            matrices.scale((float) renderPose.scale().x(),
+                    (float) renderPose.scale().y(),
+                    (float) renderPose.scale().z());
             if (data instanceof final VanillaChunkedSubLevelRenderData chunkedRenderData) {
-                for (final SectionRenderDispatcher.RenderSection renderSection : chunkedRenderData.allRenderSections()) {
-                    final List<BlockEntity> blockEntities = renderSection.getCompiled().getRenderableBlockEntities();
+                for (final ChunkRenderDispatcher.RenderChunk renderSection : chunkedRenderData.allRenderSections()) {
+                    final List<BlockEntity> blockEntities = renderSection.getCompiledChunk().getRenderableBlockEntities();
                     if (!blockEntities.isEmpty()) {
+                        for (final BlockEntity blockEntity : blockEntities) {
+                            logBlockEntityRenderPath(sublevel, blockEntity, cameraPosition, localCamera, renderPose);
+                        }
                         blockEntityRenderer.renderBlockEntities(blockEntities, matrices, partialTick, -chunkOffset.x, -chunkOffset.y, -chunkOffset.z);
                     }
                 }
             } else if (data instanceof final VanillaSingleSubLevelRenderData singleRenderData) {
                 final BlockEntity renderBlockEntity = singleRenderData.getRenderBlockEntity();
                 if (renderBlockEntity != null) {
+                    logBlockEntityRenderPath(sublevel, renderBlockEntity, cameraPosition, localCamera, renderPose);
                     blockEntityRenderer.renderSingleBE(renderBlockEntity, matrices, partialTick, -chunkOffset.x, -chunkOffset.y, -chunkOffset.z);
                 }
             }
         }
 
         dispatcher.sable$setCameraPosition(null);
+    }
+
+    private static void logBlockEntityRenderPath(final ClientSubLevel sublevel,
+                                                  final BlockEntity blockEntity,
+                                                  final Vec3 camera,
+                                                  final Vec3 localCamera,
+                                                  final Pose3dc renderPose) {
+        final String diagnosticKey = sublevel.getUniqueId() + ":" + blockEntity.getType();
+        if (LOGGED_BLOCK_ENTITY_PATHS.size() >= 64 || !LOGGED_BLOCK_ENTITY_PATHS.add(diagnosticKey)) {
+            return;
+        }
+        final Vec3 physicalBlockOrigin = renderPose.transformPosition(Vec3.atLowerCornerOf(blockEntity.getBlockPos()));
+        LOGGER.info("SABLE-BE-RENDER: sub-level={}, type={}, local={}, physical={}, camera={}, "
+                        + "localCamera={}, precision-safe=true",
+                sublevel.getUniqueId(), blockEntity.getType(), blockEntity.getBlockPos(), physicalBlockOrigin,
+                camera, localCamera);
     }
 
     @Override

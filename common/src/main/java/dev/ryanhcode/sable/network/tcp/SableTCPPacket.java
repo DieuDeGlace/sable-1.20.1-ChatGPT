@@ -1,7 +1,7 @@
 package dev.ryanhcode.sable.network.tcp;
 
-import foundry.veil.api.network.handler.PacketContext;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import dev.ryanhcode.sable.network.tcp.PacketContext;
+import dev.ryanhcode.sable.network.tcp.CustomPacketPayload;
 
 public interface SableTCPPacket extends CustomPacketPayload {
 

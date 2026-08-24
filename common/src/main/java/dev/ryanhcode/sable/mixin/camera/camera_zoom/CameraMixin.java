@@ -84,7 +84,7 @@ public abstract class CameraMixin implements CameraZoomExtension {
     private float sable$clampZoom(final float maxZoom, final SubLevel ignoredSubLevel) {
         float zoom = maxZoom;
 
-        final float partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
+        final float partialTick = Minecraft.getInstance().getFrameTime();
 
         final Level level = this.entity.level();
         final LevelPoseProviderExtension extension = ((LevelPoseProviderExtension) this.level);
@@ -120,7 +120,7 @@ public abstract class CameraMixin implements CameraZoomExtension {
     }
 
     @Inject(method = "getMaxZoom", at = @At(value = "HEAD"), cancellable = true)
-    private void sable$getMaxZoomHead(final float f, final CallbackInfoReturnable<Float> cir) {
+    private void sable$getMaxZoomHead(final double f, final CallbackInfoReturnable<Double> cir) {
         final Minecraft minecraft = Minecraft.getInstance();
 
         if (minecraft.options.getCameraType() == SableCameraTypes.SUB_LEVEL_VIEW || minecraft.options.getCameraType() == SableCameraTypes.SUB_LEVEL_VIEW_UNLOCKED) {
@@ -132,14 +132,14 @@ public abstract class CameraMixin implements CameraZoomExtension {
                 final SubLevel subLevel = Sable.HELPER.getContaining(minecraft.level, vehicle.position());
 
                 if (subLevel != null) {
-                    final float partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+                    final float partialTick = Minecraft.getInstance().getFrameTime();
                     final float zoomAmount = Mth.lerp(partialTick, this.sable$lastInterpolatedZoom, this.sable$interpolatedZoom);
 
                     final BoundingBox3ic boundingBox = subLevel.getPlot().getBoundingBox();
                     final Vec3 extents = new Vec3(boundingBox.maxX() - boundingBox.minX(), boundingBox.maxY() - boundingBox.minY(), boundingBox.maxZ() - boundingBox.minZ());
                     final double maxDist = extents.scale(0.5).length();
-                    final float desiredDistance = (float) Math.max(f, maxDist) * (1.75f + zoomAmount);
-                    cir.setReturnValue(this.sable$clampZoom(desiredDistance, subLevel));
+                    final float desiredDistance = (float) (Math.max(f, maxDist) * (1.75f + zoomAmount));
+                    cir.setReturnValue((double) this.sable$clampZoom(desiredDistance, subLevel));
                     this.sable$pushed = false;
                     return;
                 }
@@ -148,17 +148,17 @@ public abstract class CameraMixin implements CameraZoomExtension {
 
         final LevelPoseProviderExtension extension = ((LevelPoseProviderExtension) minecraft.level);
         assert extension != null;
-        extension.sable$pushPoseSupplier((subLevel) -> ((ClientSubLevel) subLevel).renderPose(minecraft.getTimer().getGameTimeDeltaPartialTick(false)));
+        extension.sable$pushPoseSupplier((subLevel) -> ((ClientSubLevel) subLevel).renderPose(minecraft.getFrameTime()));
         this.sable$pushed = true;
     }
 
-    @Redirect(method = "getMaxZoom", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"))
+    @Redirect(method = "getMaxZoom", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D"))
     private double sable$getMaxZoom(final Vec3 instance, final Vec3 vec3) {
-        return Sable.HELPER.distanceSquaredWithSubLevels((Level) this.level, instance, vec3);
+        return Math.sqrt(Sable.HELPER.distanceSquaredWithSubLevels((Level) this.level, instance, vec3));
     }
 
     @Inject(method = "getMaxZoom", at = @At(value = "RETURN"))
-    private void sable$getMaxZoomTail(final float f, final CallbackInfoReturnable<Float> cir) {
+    private void sable$getMaxZoomTail(final double f, final CallbackInfoReturnable<Double> cir) {
         if (this.sable$pushed) {
             final LevelPoseProviderExtension extension = ((LevelPoseProviderExtension) Minecraft.getInstance().level);
             assert extension != null;

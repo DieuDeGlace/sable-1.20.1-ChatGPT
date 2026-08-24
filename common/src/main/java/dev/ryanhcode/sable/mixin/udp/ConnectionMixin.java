@@ -13,7 +13,7 @@ import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.local.LocalChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import net.minecraft.network.Connection;
-import net.minecraft.network.DisconnectionDetails;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.PacketFlow;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -36,8 +36,8 @@ public abstract class ConnectionMixin implements ConnectionExtension {
         this.sable$udpChannel = channel;
     }
 
-    @Inject(method = "disconnect(Lnet/minecraft/network/DisconnectionDetails;)V", at = @At("TAIL"))
-    private void sable$onDisconnect(final DisconnectionDetails disconnectionDetails, final CallbackInfo ci) {
+    @Inject(method = "disconnect(Lnet/minecraft/network/chat/Component;)V", at = @At("TAIL"))
+    private void sable$onDisconnect(final Component reason, final CallbackInfo ci) {
         final Channel channel = this.sable$udpChannel;
         if (this.sable$udpChannel != null && this.sable$udpChannel.isOpen()) {
             this.sable$udpChannel = null;
@@ -78,14 +78,17 @@ public abstract class ConnectionMixin implements ConnectionExtension {
                     @Override
                     protected void initChannel(final Channel channel) {
                         channel.config().setOption(ChannelOption.SO_KEEPALIVE, true);
-                        SableUDPPacket.configureSerialization(channel.pipeline(), PacketFlow.CLIENTBOUND, false, null);
+                        SableUDPPacket.configureSerialization(channel.pipeline(), PacketFlow.CLIENTBOUND, false);
                         sable$setupChannel(channel, connection);
                     }
                 })
                 .channel(channelClass)
                 .connect(inetSocketAddress.getAddress(), inetSocketAddress.getPort());
 
-        channelFuture.syncUninterruptibly();
+        // Do not block Minecraft's TCP connector thread on the auxiliary UDP
+        // connect. On Forge 1.20.1 this intermittently held the login pipeline
+        // until the server's 30-second timeout even after channelActive fired.
+        channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
     @Inject(method = "connectToLocalServer", at = @At("TAIL"))

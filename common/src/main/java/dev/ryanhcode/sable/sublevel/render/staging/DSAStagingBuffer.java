@@ -113,7 +113,7 @@ public class DSAStagingBuffer extends StagingBuffer {
 
             // If there's space, then go after the fences
             // Otherwise, try to go to the start
-            final FencedArea fence = this.fences.getLast();
+            final FencedArea fence = this.fences.get(this.fences.size() - 1);
             if (fence.offset + fence.length + size < this.size) {
                 // Check if the region has already been written to
                 long end = fence.offset + fence.length;
@@ -122,7 +122,7 @@ public class DSAStagingBuffer extends StagingBuffer {
                     final long length = this.flushRegions.getLong(this.flushRegions.size() - 1);
                     if (offset + length + size >= this.size) {
                         this.writePointer = 0;
-                        this.writeRegionSize = this.fences.getFirst().offset;
+                        this.writeRegionSize = this.fences.get(0).offset;
                         return this.allocate(size);
                     } else if (offset + length > end) {
                         end = offset + length;
@@ -136,7 +136,7 @@ public class DSAStagingBuffer extends StagingBuffer {
 
             // Otherwise, just go to the start
             this.writePointer = 0;
-            this.writeRegionSize = this.fences.getFirst().offset;
+            this.writeRegionSize = this.fences.get(0).offset;
         }
         return this.allocate(size);
     }

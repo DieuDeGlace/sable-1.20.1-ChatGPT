@@ -3,8 +3,9 @@ package dev.ryanhcode.sable.physics.config.block_properties;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import dev.ryanhcode.sable.network.codec.ByteBufCodecs;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
+import dev.ryanhcode.sable.util.SableCodecUtil;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
 
@@ -21,14 +22,14 @@ public record PhysicsBlockPropertiesDefinition(ExtraCodecs.TagOrElementLocation 
                                                Optional<Map<BlockStateConditionSet, Map<ResourceLocation, Object>>> overrides) {
 
     public static final Codec<Map<ResourceLocation, Object>> PROPERTIES_CODEC =
-            Codec.dispatchedMap(ResourceLocation.CODEC, PhysicsBlockPropertyTypes::getPropertyCodec);
+            SableCodecUtil.dispatchedMap(ResourceLocation.CODEC, PhysicsBlockPropertyTypes::getPropertyCodec);
 
     public static final Codec<PhysicsBlockPropertiesDefinition> CODEC =
             RecordCodecBuilder.create(i -> i.group(
                     ExtraCodecs.TAG_OR_ELEMENT_ID.fieldOf("selector").forGetter(PhysicsBlockPropertiesDefinition::selector),
                     Codec.intRange(0, Integer.MAX_VALUE).optionalFieldOf("priority", 1000).forGetter(PhysicsBlockPropertiesDefinition::priority),
                     PROPERTIES_CODEC.fieldOf("properties").forGetter(PhysicsBlockPropertiesDefinition::properties),
-                    Codec.dispatchedMap(BlockStateConditionSet.CODEC, (ignored) -> PROPERTIES_CODEC)
+                    SableCodecUtil.dispatchedMap(BlockStateConditionSet.CODEC, (ignored) -> PROPERTIES_CODEC)
                             .optionalFieldOf("overrides").forGetter(PhysicsBlockPropertiesDefinition::overrides)
             ).apply(i, PhysicsBlockPropertiesDefinition::new));
 

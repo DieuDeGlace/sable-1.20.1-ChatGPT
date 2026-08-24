@@ -107,6 +107,23 @@ public abstract class ParticleMixin implements ParticleExtension {
     @Shadow
     public abstract void tick();
 
+    @Override
+    public Vec3 sable$getPosition() {
+        return new Vec3(this.x, this.y, this.z);
+    }
+
+    @Override
+    public Vec3 sable$getVelocity() {
+        return new Vec3(this.xd, this.yd, this.zd);
+    }
+
+    @Override
+    public void sable$setVelocity(final Vec3 velocity) {
+        this.xd = velocity.x;
+        this.yd = velocity.y;
+        this.zd = velocity.z;
+    }
+
     //#region stupid vanilla velocity
     @ModifyConstant(method = "Lnet/minecraft/client/particle/Particle;<init>(Lnet/minecraft/client/multiplayer/ClientLevel;DDDDDD)V", constant = @Constant(ordinal = 13))
     private double sable$removeUpwardsVelocity(final double originalBlockDamageDistanceConstant) {
@@ -251,7 +268,7 @@ public abstract class ParticleMixin implements ParticleExtension {
                         JOMLConversion.toMojang(localRayEnd),
                         ClipContext.Block.COLLIDER,
                         ClipContext.Fluid.NONE,
-                        CollisionContext.empty());
+                        null);
                 ((ClipContextExtension) clipContext).sable$setDoNotProject(true);
                 final BlockHitResult result = this.level.clip(clipContext);
 
@@ -277,7 +294,7 @@ public abstract class ParticleMixin implements ParticleExtension {
                         JOMLConversion.toMojang(localRayEnd),
                         ClipContext.Block.COLLIDER,
                         ClipContext.Fluid.NONE,
-                        CollisionContext.empty());
+                        null);
                 ((ClipContextExtension) clipContext).sable$setDoNotProject(true);
                 final BlockHitResult result = this.level.clip(clipContext);
 

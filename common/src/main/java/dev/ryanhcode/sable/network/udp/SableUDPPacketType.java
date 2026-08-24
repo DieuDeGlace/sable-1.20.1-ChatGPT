@@ -6,8 +6,8 @@ import dev.ryanhcode.sable.network.packets.udp.SableUDPAuthenticationPacket;
 import dev.ryanhcode.sable.network.packets.udp.SableUDPClientboundKeepAlivePacket;
 import dev.ryanhcode.sable.network.packets.udp.SableUDPEchoPacket;
 import dev.ryanhcode.sable.network.packets.udp.SableUDPServerboundAlivePacket;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
 
 public enum SableUDPPacketType {
     PING(SableUDPEchoPacket.CODEC),
@@ -19,17 +19,17 @@ public enum SableUDPPacketType {
 
     public static final SableUDPPacketType[] VALUES = SableUDPPacketType.values();
 
-    private final StreamCodec<RegistryFriendlyByteBuf, ? extends SableUDPPacket> codec;
+    private final StreamCodec<FriendlyByteBuf, ? extends SableUDPPacket> codec;
 
-    SableUDPPacketType(final StreamCodec<RegistryFriendlyByteBuf, ? extends SableUDPPacket> codec) {
+    SableUDPPacketType(final StreamCodec<FriendlyByteBuf, ? extends SableUDPPacket> codec) {
         this.codec = codec;
     }
 
-    public SableUDPPacket create(final RegistryFriendlyByteBuf buf) {
+    public SableUDPPacket create(final FriendlyByteBuf buf) {
         return this.codec.decode(buf);
     }
 
-    public void write(final RegistryFriendlyByteBuf buf, final SableUDPPacket packet) {
+    public void write(final FriendlyByteBuf buf, final SableUDPPacket packet) {
         //noinspection unchecked,rawtypes
         ((StreamCodec) this.codec).encode(buf, packet);
     }

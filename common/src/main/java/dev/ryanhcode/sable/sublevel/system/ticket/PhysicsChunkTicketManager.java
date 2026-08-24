@@ -25,7 +25,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
@@ -86,7 +86,7 @@ public class PhysicsChunkTicketManager {
 
         final LongOpenHashSet unloadedChunks = new LongOpenHashSet();
 
-        final boolean cannotUnloadPlayerInhabited = SableConfig.SUB_LEVELS_WITH_PLAYERS_CANNOT_UNLOAD.getAsBoolean();
+        final boolean cannotUnloadPlayerInhabited = SableConfig.SUB_LEVELS_WITH_PLAYERS_CANNOT_UNLOAD.get();
 
         final BoundingBox3d b = new BoundingBox3d();
         final BoundingBox3d b2 = new BoundingBox3d();

@@ -71,7 +71,7 @@ public class SableDynamicDirectionalShadingPreProcessor implements ShaderPreProc
                     if (operationNode.getSecond() instanceof final GlslInvokeFunctionNode invokeNode && invokeNode.getHeader() instanceof final GlslVariableNode variableNode && variableNode.getName().equals("minecraft_sample_lightmap")) {
                         final List<GlslNode> replacementNodes = GlslParser.parseExpressionList("vertexColor = Color * minecraft_sample_lightmap(Sampler2, ivec2(UV2 * vec2(1.0, SableSkyLightScale)));");
 
-                        mainFunctionBody.set(i, replacementNodes.getFirst());
+                        mainFunctionBody.set(i, replacementNodes.get(0));
 
                         for (int j = 1; j < replacementNodes.size(); j++) {
                             mainFunctionBody.add(i + j, replacementNodes.get(j));

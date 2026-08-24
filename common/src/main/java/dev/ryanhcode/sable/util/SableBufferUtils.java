@@ -5,13 +5,13 @@ import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.Pose3d;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import dev.ryanhcode.sable.network.codec.StreamCodec;
 import org.joml.*;
 
 public class SableBufferUtils {
 
-    public static final StreamCodec<? super RegistryFriendlyByteBuf, Pose3d> POSE3D_STREAM_CODEC = StreamCodec.of(SableBufferUtils::write,
+    public static final StreamCodec<? super FriendlyByteBuf, Pose3d> POSE3D_STREAM_CODEC = StreamCodec.of(SableBufferUtils::write,
             (buf) -> SableBufferUtils.read(buf, new Pose3d()));
 
     public static void write(final ByteBuf buf, final Vector3dc vec) {

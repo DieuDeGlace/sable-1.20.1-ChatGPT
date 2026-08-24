@@ -29,6 +29,9 @@ atlassian-ide-plugin.xml
 
 # Log file
 *.log
+/forge/logs/
+/logs/
+/build-final.txt
 
 # BlueJ files
 *.ctxt
@@ -125,9 +128,30 @@ gradle-app.setting
 # Common working directory
 run/
 runs/
+/deliverables/
+/.build-tools/
+/dist/
+/.mixin.out/
+/config/
 
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
-!gradle-wrapper.jar
+# Private port records are stored outside this repository. These guards prevent
+# accidental reintroduction if a local archive is copied beside the sources.
+/private-records/
+/construction-logs/
+/records/
+/notes/
+/backups/
+/artifacts/
+/crash-reports/
+/docs/evidence/
+/docs/PJ_*.md
+/docs/*MILESTONE*.md
+/docs/*TODO*.md
+
+# Standalone Sable Test Tools outputs
+/test-tools/.gradle/
+/test-tools/build/
+/test-tools/run/
 
 /.profileconfig.json
 

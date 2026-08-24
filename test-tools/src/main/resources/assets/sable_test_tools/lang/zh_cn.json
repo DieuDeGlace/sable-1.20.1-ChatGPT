@@ -1,0 +1,7 @@
+{
+  "item.sable_test_tools.selection_wand": "Sable 测试魔杖",
+  "item.sable_test_tools.selection_wand.tooltip": "左键选择点 1，右键选择点 2",
+  "item.sable_test_tools.gravity_gun": "Sable 重力枪",
+  "item.sable_test_tools.gravity_gun.tooltip": "右键抓取/放下，左键发射",
+  "item.sable_test_tools.gravity_gun.tooltip_alt": "潜行右键也可发射"
+}

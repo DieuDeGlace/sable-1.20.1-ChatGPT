@@ -3,14 +3,42 @@ package dev.ryanhcode.sable.mixin.clip_overwrite;
 import dev.ryanhcode.sable.mixinterface.clip_overwrite.ClipContextExtension;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mutable;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
 import java.util.function.Predicate;
 
 @Mixin(ClipContext.class)
 public class ClipContextMixin implements ClipContextExtension {
+
+    @Shadow @Final private ClipContext.Block block;
+    @Shadow @Final private ClipContext.Fluid fluid;
+    @Mutable @Shadow @Final private CollisionContext collisionContext;
+
+    @Override
+    public ClipContext.Block sable$getBlockMode() {
+        return this.block;
+    }
+
+    @Override
+    public ClipContext.Fluid sable$getFluidMode() {
+        return this.fluid;
+    }
+
+    @Override
+    public CollisionContext sable$getCollisionContext() {
+        return this.collisionContext;
+    }
+
+    @Override
+    public void sable$setCollisionContext(final CollisionContext collisionContext) {
+        this.collisionContext = collisionContext;
+    }
 
     @Unique
     @Nullable
