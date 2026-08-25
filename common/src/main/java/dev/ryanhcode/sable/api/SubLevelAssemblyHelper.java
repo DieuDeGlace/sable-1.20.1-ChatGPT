@@ -43,6 +43,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BellAttachType;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -319,21 +320,17 @@ public class SubLevelAssemblyHelper {
     }
 
     private static boolean hasOccupiedHangingSupport(final HangingEntity entity, final BoundedBitVolume3i volume) {
-        final int width = Math.max(1, entity.getWidth() / 16);
-        final int height = Math.max(1, entity.getHeight() / 16);
-        final BlockPos supportOrigin = entity.getPos().relative(entity.getDirection().getOpposite());
-        final Direction horizontal = entity.getDirection().getCounterClockWise();
+        return BlockPos.betweenClosedStream(calculateHangingSupportBox(entity.getBoundingBox(), entity.getDirection()))
+                .anyMatch(support -> volume.getOccupied(support.getX(), support.getY(), support.getZ()));
+    }
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                final BlockPos support = supportOrigin.relative(horizontal, x + (width - 1) / -2)
-                        .relative(Direction.UP, y + (height - 1) / -2);
-                if (volume.getOccupied(support.getX(), support.getY(), support.getZ())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    /**
+     * Minecraft 1.21's {@code HangingEntity#calculateSupportBox()} backported for 1.20.1.
+     * Deriving the support cells from the entity bounds keeps this valid for custom hanging
+     * entities that attach to floors or ceilings as well as vanilla horizontal attachments.
+     */
+    static AABB calculateHangingSupportBox(final AABB boundingBox, final Direction direction) {
+        return boundingBox.move(Vec3.atLowerCornerOf(direction.getNormal()).scale(-0.5D)).inflate(1.0E-7D);
     }
 
     private static boolean needsBitSet(final ServerLevel level, final BoundingBox3ic bounds, final List<Entity> entities) {

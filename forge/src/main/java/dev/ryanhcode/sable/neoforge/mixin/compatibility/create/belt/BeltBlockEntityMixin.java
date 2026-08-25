@@ -65,7 +65,7 @@ public abstract class BeltBlockEntityMixin extends KineticBlockEntity {
             return;
         }
         final String side = this.level == null ? "no-level" : this.level.isClientSide ? "client" : "server";
-        sable$BELT_LOGGER.info("SABLE-BELT-NBT-{}: side={}, clientPacket={}, pos={}, items={}, lazy={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$BELT_LOGGER, "SABLE-BELT-NBT-{}: side={}, clientPacket={}, pos={}, items={}, lazy={}, "
                         + "controller={}, length={}, logIndex={}",
                 operation, side, clientPacket, this.worldPosition, itemCount, hasLazyItem,
                 compound.getBoolean("IsController"), compound.getInt("Length"), logIndex);

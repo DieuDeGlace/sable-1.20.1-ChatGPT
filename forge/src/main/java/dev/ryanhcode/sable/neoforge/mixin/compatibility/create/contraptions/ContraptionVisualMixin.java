@@ -117,7 +117,7 @@ public abstract class ContraptionVisualMixin extends AbstractEntityVisual<Abstra
                 ? -1 : this.entity.getContraption().getBlocks().size();
         final float poseDet = this.contraptionMatrix.last().pose().determinant();
         final float normalDet = this.contraptionMatrix.last().normal().determinant();
-        dev.ryanhcode.sable.Sable.LOGGER.info(
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(dev.ryanhcode.sable.Sable.LOGGER,
                 "SABLE-CREATE-CONTRAPTION-VISUAL: branch={}, uuid={}, entityId={}, chunk={}, plot=({},{}), "
                         + "position=[{},{},{}], blocks={}, removed={}, poseDet={}, normalDet={}",
                 branch, this.entity.getUUID(), this.entity.getId(), chunkPos, plotX, plotZ,

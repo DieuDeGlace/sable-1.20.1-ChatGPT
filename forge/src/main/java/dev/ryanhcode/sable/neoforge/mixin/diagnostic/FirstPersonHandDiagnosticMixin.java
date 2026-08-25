@@ -37,7 +37,7 @@ public abstract class FirstPersonHandDiagnosticMixin {
             return;
         }
         sable$loggedEntry = true;
-        SABLE$LOGGER.info(
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(SABLE$LOGGER,
                 "SABLE-FIRST-PERSON-HAND: stage=entry cameraType={} firstPerson={} hideGui={} spectator={} "
                         + "sleeping={} drawFbo={} readFbo={} mainFbo={}",
                 this.minecraft.options.getCameraType(),
@@ -64,7 +64,7 @@ public abstract class FirstPersonHandDiagnosticMixin {
             return;
         }
         sable$loggedSubmission = true;
-        SABLE$LOGGER.info("SABLE-FIRST-PERSON-HAND: stage=vanilla-submit drawFbo={} readFbo={} mainFbo={}",
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(SABLE$LOGGER, "SABLE-FIRST-PERSON-HAND: stage=vanilla-submit drawFbo={} readFbo={} mainFbo={}",
                 GL30.glGetInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING),
                 GL30.glGetInteger(GL30.GL_READ_FRAMEBUFFER_BINDING),
                 this.minecraft.getMainRenderTarget().frameBufferId);

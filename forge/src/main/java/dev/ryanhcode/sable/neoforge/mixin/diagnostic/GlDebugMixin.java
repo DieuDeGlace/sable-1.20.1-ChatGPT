@@ -32,15 +32,19 @@ public abstract class GlDebugMixin {
         final String message = MemoryUtil.memUTF8(messagePointer, length);
         if (!sable$loggedDepthFormatFault && message.contains("Depth formats do not match")) {
             sable$loggedDepthFormatFault = true;
-            SABLE$LOGGER.error("SABLE-GL-DEPTH-FORMAT-CALLSITE: source={}, type={}, id={}, severity={}, message={}",
-                    source, type, id, severity, message, new Throwable("first native depth-format fault call stack"));
+            if (dev.ryanhcode.sable.util.DiagnosticLogLimiter.tryAcquire("SABLE-GL-DEPTH-FORMAT-CALLSITE")) {
+                SABLE$LOGGER.error("SABLE-GL-DEPTH-FORMAT-CALLSITE: source={}, type={}, id={}, severity={}, message={}",
+                        source, type, id, severity, message, new Throwable("first native depth-format fault call stack"));
+            }
         }
 
         if (!sable$loggedNoActiveProgramFault && message.contains("No active program")) {
             sable$loggedNoActiveProgramFault = true;
-            SABLE$LOGGER.error("SABLE-GL-NO-ACTIVE-PROGRAM-CALLSITE: source={}, type={}, id={}, severity={}, message={}",
-                    source, type, id, severity, message,
-                    new Throwable("first native no-active-program fault call stack"));
+            if (dev.ryanhcode.sable.util.DiagnosticLogLimiter.tryAcquire("SABLE-GL-NO-ACTIVE-PROGRAM-CALLSITE")) {
+                SABLE$LOGGER.error("SABLE-GL-NO-ACTIVE-PROGRAM-CALLSITE: source={}, type={}, id={}, severity={}, message={}",
+                        source, type, id, severity, message,
+                        new Throwable("first native no-active-program fault call stack"));
+            }
         }
     }
 }

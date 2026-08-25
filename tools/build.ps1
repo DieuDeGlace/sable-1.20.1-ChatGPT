@@ -190,6 +190,7 @@ function Assert-ProductionJar {
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/immersiveengineering/TurretBlockEntityMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/PostProcessingManagerMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/VeilDeferredRendererMixin.class',
+            'dev/ryanhcode/sable/util/DiagnosticLogLimiter.class',
             'LICENSE.md',
             'THIRD_PARTY_NOTICES.md'
         )) {
@@ -262,6 +263,75 @@ function Assert-ProductionJar {
                 Entry = 'dev/ryanhcode/sable/api/block/propeller/BlockEntityPropeller.class'
                 Required = @('m_58904_', 'm_58899_')
                 Message = 'Propeller API is missing its remapped BlockEntity accessor bridge'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/api/SubLevelAssemblyHelper.class'
+                Required = @('calculateHangingSupportBox', 'm_121921_', 'm_82383_')
+                Forbidden = 'm_122428_'
+                Message = 'Hanging-entity migration is not using the direction-agnostic 1.21 support-box backport'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/util/DiagnosticLogLimiter.class'
+                Required = @('DIAGNOSTIC_LOG_TOTAL_LIMIT', 'DIAGNOSTIC_LOG_PER_PROBE_LIMIT', 'ConcurrentHashMap')
+                Message = 'Production diagnostics are missing the configurable shared probe budget'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/mixin/port/sublevel_render/LevelRendererMixin.class'
+                Required = @(
+                    'sable$renderSubLevelBlockEntities',
+                    'sable$renderSingleBlockSubLevels',
+                    'Lorg/spongepowered/asm/mixin/injection/Redirect;',
+                    '(Lnet/minecraft/client/renderer/LevelRenderer;Lcom/mojang/blaze3d/vertex/PoseStack;FJZLnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/GameRenderer;Lnet/minecraft/client/renderer/LightTexture;Lorg/joml/Matrix4f;)Ljava/util/Set;',
+                    '(Lnet/minecraft/client/renderer/DimensionSpecialEffects;Lcom/mojang/blaze3d/vertex/PoseStack;FJZLnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/GameRenderer;Lnet/minecraft/client/renderer/LightTexture;Lorg/joml/Matrix4f;)Z'
+                )
+                Message = 'Forge 1.20.1 render-stage bridges still allocate renderLevel CallbackInfo locals instead of redirecting their exact operations'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/neoforge/mixin/admitted/GlobalSubLevelBlockEntityMixin.class'
+                Required = @(
+                    'sable$captureWorldRenderBasis',
+                    'Lorg/spongepowered/asm/mixin/injection/Redirect;',
+                    '(Lcom/mojang/blaze3d/vertex/PoseStack;)V',
+                    'Lcom/mojang/blaze3d/vertex/PoseStack;pushPose()V'
+                )
+                Forbidden = @(
+                    'org/spongepowered/asm/mixin/injection/callback/CallbackInfo',
+                    'Lorg/spongepowered/asm/mixin/injection/ModifyVariable;'
+                )
+                Message = 'Global block-entity pose capture is not localized to its own PoseStack push operation'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/neoforge/mixin/block_outline_render/LevelRendererMixin.class'
+                Required = @(
+                    'sable$renderSubLevelHighlight',
+                    'sable$renderSubLevelHitOutline',
+                    'Lorg/spongepowered/asm/mixin/injection/Redirect;',
+                    'Lorg/spongepowered/asm/mixin/gen/Invoker;',
+                    'ForgeHooksClient',
+                    'renderHitOutline'
+                )
+                Forbidden = @(
+                    'org/spongepowered/asm/mixin/injection/callback/CallbackInfo',
+                    'com/llamalad7/mixinextras/injector/wrapoperation',
+                    'com/llamalad7/mixinextras/sugar/Share'
+                )
+                Message = 'Block-outline transforms still share renderLevel locals instead of redirecting owned calls'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/mixin/block_decal_render/LevelRendererMixin.class'
+                Required = @(
+                    'sable$translateBlockDamage',
+                    'Lorg/spongepowered/asm/mixin/injection/Redirect;',
+                    'Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V',
+                    'destructionProgress',
+                    'renderBreakingTexture'
+                )
+                Forbidden = @(
+                    'org/spongepowered/asm/mixin/injection/callback/CallbackInfo',
+                    'com/llamalad7/mixinextras/injector/wrapoperation',
+                    'com/llamalad7/mixinextras/sugar/Local'
+                )
+                Message = 'Block-damage transform is not localized before the decal consumer captures its PoseStack matrices'
             }
         )
         foreach ($check in $abiChecks) {
@@ -283,8 +353,12 @@ function Assert-ProductionJar {
             finally {
                 $stream.Dispose()
             }
-            if ($check.ContainsKey('Forbidden') -and $classText.Contains($check.Forbidden)) {
-                throw $check.Message
+            if ($check.ContainsKey('Forbidden')) {
+                foreach ($forbidden in @($check.Forbidden)) {
+                    if (-not [string]::IsNullOrEmpty($forbidden) -and $classText.Contains($forbidden)) {
+                        throw $check.Message
+                    }
+                }
             }
             foreach ($required in @($check.Required)) {
                 if (-not [string]::IsNullOrEmpty($required) -and -not $classText.Contains($required)) {

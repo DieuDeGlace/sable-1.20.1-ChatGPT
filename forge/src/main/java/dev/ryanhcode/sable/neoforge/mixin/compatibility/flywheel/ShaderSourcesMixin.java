@@ -57,7 +57,7 @@ public class ShaderSourcesMixin {
             this.cache.put(originalName, extendedResult);
         }
 
-        SABLE$LOGGER.info("SABLE-FLYWHEEL-SHADER-ABI: aliases={}, includeReplacements={}, matrixStrideBytes=192",
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(SABLE$LOGGER, "SABLE-FLYWHEEL-SHADER-ABI: aliases={}, includeReplacements={}, matrixStrideBytes=192",
                 SABLE$SOURCE_ALIASES.size(), replacements);
     }
 

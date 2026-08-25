@@ -60,7 +60,7 @@ public class InstancedDrawManagerMixin {
             }
         }
 
-        Sable.LOGGER.info("SABLE-FLYWHEEL-INSTANCED-ADMISSION: createdEmbeddedVisuals={}, allDraws={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-INSTANCED-ADMISSION: createdEmbeddedVisuals={}, allDraws={}, "
                         + "directDraws={}, oitDraws={}, embeddedDraws={}, embeddedInstances={}, globalInstances={}",
                 created, this.allDraws.size(), this.draws.size(), this.oitDraws.size(), embeddedDraws,
                 embeddedInstances, globalInstances);

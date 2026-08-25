@@ -83,7 +83,7 @@ public class FlywheelCompatNeoForge {
         }
 
         if (recovered > 0) {
-            Sable.LOGGER.info("SABLE-FLYWHEEL-RENDER-STATE-RECOVERY: recovered={}, subLevels={}",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-RENDER-STATE-RECOVERY: recovered={}, subLevels={}",
                     recovered, container.getAllSubLevels().size());
         }
     }

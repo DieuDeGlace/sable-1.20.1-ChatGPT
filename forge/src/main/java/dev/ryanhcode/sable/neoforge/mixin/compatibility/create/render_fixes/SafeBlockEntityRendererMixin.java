@@ -40,7 +40,7 @@ public class SafeBlockEntityRendererMixin {
         sable$cullContext.set("sub-level=" + subLevel.getUniqueId() + ", local=" + itemPos
                 + ", physical=" + physical);
         if (sable$loggedItemCullPaths.size() < 64 && sable$loggedItemCullPaths.add(subLevel.getUniqueId())) {
-            sable$LOGGER.info("SABLE-CREATE-ITEM-CULL: sub-level={}, local={}, physical={}, render-pose=true",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-CREATE-ITEM-CULL: sub-level={}, local={}, physical={}, render-pose=true",
                     subLevel.getUniqueId(), itemPos, physical);
         }
         return physical;
@@ -56,7 +56,7 @@ public class SafeBlockEntityRendererMixin {
         if (logIndex >= 128) {
             return;
         }
-        sable$LOGGER.info("SABLE-CREATE-ITEM-CULL-RESULT: {}, effectiveArg={}, culled={}, level={}, logIndex={}",
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-CREATE-ITEM-CULL-RESULT: {}, effectiveArg={}, culled={}, level={}, logIndex={}",
                 context, itemPos, cir.getReturnValue(), level.getClass().getName(), logIndex);
     }
 }

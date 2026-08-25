@@ -39,7 +39,7 @@ public final class ReachAroundSubLevelRenderDispatcher extends VanillaSubLevelRe
             this.sectionRenderDispatcher = new ChunkRenderDispatcher(
                     level, levelRenderer, Util.backgroundExecutor(), minecraft.is64Bit(),
                     this.fixedBufferPack, this.asynchronousBuilderCount);
-            Sable.LOGGER.info("SABLE-EMBEDDIUM-REACHAROUND: dedicatedDispatcher=true, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-EMBEDDIUM-REACHAROUND: dedicatedDispatcher=true, "
                             + "dedicatedFixedBuffers=true, asyncBuilders={}",
                     this.asynchronousBuilderCount);
         }

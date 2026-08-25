@@ -20,9 +20,18 @@ public final class SableConfig {
     public static final ForgeConfigSpec.BooleanValue ATTEMPT_UDP_NETWORKING;
     public static final ForgeConfigSpec.BooleanValue SUB_LEVEL_SAVING_LOG_MESSAGE;
     public static final ForgeConfigSpec.BooleanValue VERBOSE_SERIALIZATION_LOGGING;
+    public static final ForgeConfigSpec.IntValue DIAGNOSTIC_LOG_TOTAL_LIMIT;
+    public static final ForgeConfigSpec.IntValue DIAGNOSTIC_LOG_PER_PROBE_LIMIT;
 
     static {
         final ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+
+        DIAGNOSTIC_LOG_TOTAL_LIMIT = builder
+                .comment("Maximum number of bounded Sable/Simulated diagnostic probe records emitted per game process; 0 disables them")
+                .defineInRange("diagnostic_log_total_limit", 1024, 0, 100000);
+        DIAGNOSTIC_LOG_PER_PROBE_LIMIT = builder
+                .comment("Maximum number of records emitted by one named diagnostic probe per game process; 0 disables them")
+                .defineInRange("diagnostic_log_per_probe_limit", 64, 0, 10000);
 
         SUB_LEVEL_SPLITTING = builder
                 .comment("Whether sub-levels can split when parts are separated")

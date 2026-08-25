@@ -67,7 +67,7 @@ public abstract class ContraptionEntityRendererMixin {
         sable$LOG_COUNT.incrementAndGet();
         final Vector3d projected = sable$projectedPosition(entity, subLevel,
                 Minecraft.getInstance().getFrameTime());
-        Sable.LOGGER.info("SABLE-CREATE-CONTRAPTION-FALLBACK-CULL: uuid={}, entityId={}, shaders={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-FALLBACK-CULL: uuid={}, entityId={}, shaders={}, "
                         + "shadowPass={}, visible={}, flywheelVisualization={}, plotPosition={}, "
                         + "projectedPosition={}, camera=({}, {}, {}), projectedDistanceSquared={}",
                 entity.getUUID(), entity.getId(), shaders, shadow, visible,
@@ -106,7 +106,7 @@ public abstract class ContraptionEntityRendererMixin {
                 Minecraft.getInstance().gameRenderer.getMainCamera().getPosition().y,
                 Minecraft.getInstance().gameRenderer.getMainCamera().getPosition().z);
         final Matrix4f pose = poseStack.last().pose();
-        Sable.LOGGER.info("SABLE-CREATE-CONTRAPTION-FALLBACK-RENDER: uuid={}, entityId={}, shaders={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-FALLBACK-RENDER: uuid={}, entityId={}, shaders={}, "
                         + "shadowPass={}, flywheelVisualization={}, blocks={}, plotPosition={}, "
                         + "projectedPosition={}, mainCamera={}, poseTranslation=({}, {}, {}), poseDet={}, "
                         + "bufferClass={}, packedLight={}",

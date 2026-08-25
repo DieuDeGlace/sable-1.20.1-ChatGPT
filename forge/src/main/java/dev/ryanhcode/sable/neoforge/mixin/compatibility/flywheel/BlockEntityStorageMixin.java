@@ -172,7 +172,7 @@ public abstract class BlockEntityStorageMixin extends Storage<BlockEntity> imple
         final String embeddingState = subLevel.getUniqueId() + ":" + backendId;
         if (sable$LOGGED_EMBEDDING_STATES.size() < 32
                 && sable$LOGGED_EMBEDDING_STATES.add(embeddingState)) {
-            Sable.LOGGER.info("SABLE-FLYWHEEL-EMBEDDING: subLevel={}, backend={}, backendOn={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-EMBEDDING: subLevel={}, backend={}, backendOn={}, "
                             + "parentOrigin={}, localOrigin={}, position={}, rotationPoint={}, "
                             + "matrixTranslation=({}, {}, {}), matrixDet={}, normalDet={}, finite={}",
                     subLevel.getUniqueId(), backendId, BackendManager.isBackendOn(), parentOrigin,
@@ -230,7 +230,7 @@ public abstract class BlockEntityStorageMixin extends Storage<BlockEntity> imple
         final String typeId = String.valueOf(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()));
         final String visualKey = subLevel.getUniqueId() + ":" + typeId;
         if (sable$LOGGED_VISUAL_TYPES.size() < 64 && sable$LOGGED_VISUAL_TYPES.add(visualKey)) {
-            Sable.LOGGER.info("SABLE-FLYWHEEL-VISUAL: subLevel={}, blockEntityType={}, localPos={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-VISUAL: subLevel={}, blockEntityType={}, localPos={}, "
                             + "visualClass={}, embeddingOrigin={}, backend={}",
                     subLevel.getUniqueId(), typeId, blockEntity.getBlockPos(),
                     newVisual == null ? "null" : newVisual.getClass().getName(), embedding.renderOrigin(),

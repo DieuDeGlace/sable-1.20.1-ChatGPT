@@ -58,7 +58,7 @@ public abstract class ChunkRenderRebuildTaskMixin {
         }
 
         if (onSubLevel && LOGGED_SUB_LEVEL_COMPILE.compareAndSet(false, true)) {
-            LOGGER.info("[SABLE-DYNAMIC-SHADE-COMPILE] first sub-level mesh compile chunk={} thread={}",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-DYNAMIC-SHADE-COMPILE] first sub-level mesh compile chunk={} thread={}",
                     chunkPos, Thread.currentThread().getName());
         }
     }
@@ -82,7 +82,7 @@ public abstract class ChunkRenderRebuildTaskMixin {
                         .append(",vertices=").append(renderedBuffer.drawState().vertexCount())
                         .append('}');
             });
-            LOGGER.info("SABLE-SUBLEVEL-CHUNK-COMPILE-LAYERS: thread={}, layerCount={}, layers={}",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-SUBLEVEL-CHUNK-COMPILE-LAYERS: thread={}, layerCount={}, layers={}",
                     Thread.currentThread().getName(), accessor.sable$getRenderedLayers().size(), layers);
         }
         SableDynamicDirectionalShading.endLightTrace();

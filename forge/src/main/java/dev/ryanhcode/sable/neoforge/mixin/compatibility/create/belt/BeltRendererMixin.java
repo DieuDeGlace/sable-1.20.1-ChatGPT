@@ -54,7 +54,7 @@ public class BeltRendererMixin {
         if (sable$beltInventoryStates.size() >= 128 || !sable$beltInventoryStates.add(state)) {
             return;
         }
-        sable$BELT_RENDER_LOGGER.info("SABLE-BELT-RENDER-INVENTORY: pos={}, controller={}, length={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$BELT_RENDER_LOGGER, "SABLE-BELT-RENDER-INVENTORY: pos={}, controller={}, length={}, "
                         + "items={}, lazy={}, partialTick={}, matrixTranslation=({}, {}, {})",
                 be.getBlockPos(), be.isController(), be.beltLength, itemCount, hasLazyItem, partialTicks,
                 poseStack.last().pose().m30(), poseStack.last().pose().m31(), poseStack.last().pose().m32());
@@ -82,7 +82,7 @@ public class BeltRendererMixin {
             return;
         }
         final int logIndex = sable$beltRenderLogCount.getAndIncrement();
-        sable$BELT_RENDER_LOGGER.info("SABLE-BELT-RENDER-ITEM: pos={}, stack={}, count={}, beltPosition={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$BELT_RENDER_LOGGER, "SABLE-BELT-RENDER-ITEM: pos={}, stack={}, count={}, beltPosition={}, "
                         + "prevPosition={}, sideOffset={}, facing={}, slope={}, localMatrix=({}, {}, {}), logIndex={}",
                 be.getBlockPos(), transported.stack.getItem(), transported.stack.getCount(),
                 transported.beltPosition, transported.prevBeltPosition, transported.sideOffset,

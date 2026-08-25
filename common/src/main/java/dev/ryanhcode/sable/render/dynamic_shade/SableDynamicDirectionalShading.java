@@ -49,7 +49,7 @@ public class SableDynamicDirectionalShading {
         if (trace == null || LIGHT_TRACES_WRITTEN.getAndIncrement() >= LIGHT_TRACE_LIMIT) {
             return;
         }
-        LOGGER.info("[SABLE-LIGHTMAP-COMPILE] source={} vertices={} blockUv=[{},{}] skyUv=[{},{}] samples={}",
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-LIGHTMAP-COMPILE] source={} vertices={} blockUv=[{},{}] skyUv=[{},{}] samples={}",
                 trace.source, trace.vertices,
                 trace.vertices == 0 ? "n/a" : trace.minBlockUv,
                 trace.vertices == 0 ? "n/a" : trace.maxBlockUv,

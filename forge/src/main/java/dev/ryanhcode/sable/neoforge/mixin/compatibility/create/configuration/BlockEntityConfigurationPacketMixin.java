@@ -45,7 +45,7 @@ public abstract class BlockEntityConfigurationPacketMixin {
         final boolean accepted = player.canReach(targetPos, maxRange);
         final int logIndex = sable$CONFIG_PACKET_LOGS.getAndIncrement();
         if (logIndex < 128) {
-            sable$LOGGER.info("SABLE-CREATE-CONFIG-RANGE: packet={}, sub-level={}, target={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-CREATE-CONFIG-RANGE: packet={}, sub-level={}, target={}, "
                             + "playerPhysical={}, originalAccepted={}, subLevelAccepted={}, maxRange={}, logIndex={}",
                     this.getClass().getName(), subLevel.getUniqueId(), targetPos, player.blockPosition(),
                     targetPos.closerThan(playerBlockPos, maxRange), accepted, maxRange, logIndex);

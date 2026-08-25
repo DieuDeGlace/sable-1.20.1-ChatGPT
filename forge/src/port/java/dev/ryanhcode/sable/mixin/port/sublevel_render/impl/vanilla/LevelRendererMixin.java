@@ -74,7 +74,7 @@ public abstract class LevelRendererMixin {
         final Iterable<ClientSubLevel> sublevels = ((ClientSubLevelContainer)
                 ((SubLevelContainerHolder) this.level).sable$getPlotContainer()).getAllSubLevels();
         if (LOGGED_NATIVE_RENDER.compareAndSet(false, true)) {
-            LOGGER.info("[SABLE-NATIVE-CHUNK-RENDER] beforeShaderClear=true shader={}", shader.getName());
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-NATIVE-CHUNK-RENDER] beforeShaderClear=true shader={}", shader.getName());
         }
         SubLevelRenderDispatcher.get().renderSectionLayer(sublevels, renderType, shader,
                 cameraX, cameraY, cameraZ, new Matrix4f(poseStack.last().pose()), projection,

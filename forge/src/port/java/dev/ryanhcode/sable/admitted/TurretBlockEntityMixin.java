@@ -105,7 +105,7 @@ public abstract class TurretBlockEntityMixin {
     @Unique
     private void sable$logActive() {
         if (SABLE$LOGGED_ACTIVE.compareAndSet(false, true)) {
-            Sable.LOGGER.info("SABLE-IE-TURRET-FRAME: local target, distance and obstruction coordinates active");
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-IE-TURRET-FRAME: local target, distance and obstruction coordinates active");
         }
     }
 }

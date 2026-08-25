@@ -65,7 +65,7 @@ public final class SableFlywheelModelDiagnostics {
 
         try {
             if (bakedModel == null) {
-                Sable.LOGGER.info("SABLE-FLYWHEEL-PARTIAL-EMPTY: location={}, bakedClass=<null>, bakedIdentity=0, "
+                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-PARTIAL-EMPTY: location={}, bakedClass=<null>, bakedIdentity=0, "
                                 + "missingModel=false, resultClass={}, resultIdentity={}, source={}, thread={}, "
                                 + "renderTypeCount=-1, renderTypes=<unavailable>",
                         partial.modelLocation(), model.getClass().getName(), System.identityHashCode(model), source,
@@ -107,7 +107,7 @@ public final class SableFlywheelModelDiagnostics {
                 typeEvidence.append("]}");
             }
 
-            Sable.LOGGER.info("SABLE-FLYWHEEL-PARTIAL-EMPTY: location={}, bakedClass={}, bakedIdentity={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-PARTIAL-EMPTY: location={}, bakedClass={}, bakedIdentity={}, "
                             + "missingModel={}, resultClass={}, resultIdentity={}, source={}, thread={}, "
                             + "renderTypeCount={}, renderTypes={}",
                     partial.modelLocation(), bakedModel.getClass().getName(), System.identityHashCode(bakedModel),
@@ -116,7 +116,7 @@ public final class SableFlywheelModelDiagnostics {
         } catch (final Throwable failure) {
             // Diagnostics must never abort Flywheel visual creation. Keep this record free of
             // RenderType#toString() for the same worker-thread reason described above.
-            Sable.LOGGER.info("SABLE-FLYWHEEL-PARTIAL-EMPTY: location={}, bakedClass={}, bakedIdentity={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-PARTIAL-EMPTY: location={}, bakedClass={}, bakedIdentity={}, "
                             + "resultClass={}, resultIdentity={}, source={}, thread={}, diagnosticFailure={}:{}",
                     partial.modelLocation(), bakedModel == null ? "<null>" : bakedModel.getClass().getName(),
                     System.identityHashCode(bakedModel), model.getClass().getName(), System.identityHashCode(model),
@@ -129,7 +129,7 @@ public final class SableFlywheelModelDiagnostics {
         if (!claimTrace(key)) {
             return;
         }
-        Sable.LOGGER.info("SABLE-FLYWHEEL-PARTIAL-EMPTY: location=<unmapped>, bakedClass=<unmapped>, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-PARTIAL-EMPTY: location=<unmapped>, bakedClass=<unmapped>, "
                         + "bakedIdentity=0, missingModel=false, resultClass={}, resultIdentity={}, "
                         + "source=draw-manager:unmapped, thread={}, renderTypeCount=-1, renderTypes=<unavailable>",
                 model.getClass().getName(), System.identityHashCode(model), Thread.currentThread().getName());

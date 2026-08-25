@@ -103,7 +103,7 @@ public abstract class AbstractContraptionEntityMixin extends Entity implements K
     @Inject(method = {"tick", "m_8119_"}, at = @At(value = "INVOKE", target = "Ljava/util/Map;entrySet()Ljava/util/Set;", remap = false))
     private void sable$contraptionInitialize(final CallbackInfo ci) {
         if (!this.sable$initialized && this.level() instanceof final ServerLevel serverLevel) {
-            Sable.LOGGER.info("SABLE-CREATE-CONTRAPTION-INIT: uuid={}, entityId={}, type={}, position={}, blocks={}",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-INIT: uuid={}, entityId={}, type={}, position={}, blocks={}",
                     this.getUUID(), this.getId(), this.getType(), this.position(),
                     this.contraption == null ? -1 : this.contraption.getBlocks().size());
             this.sable$buildProperties();
@@ -219,7 +219,7 @@ public abstract class AbstractContraptionEntityMixin extends Entity implements K
 
     @Inject(method = "remove", at = @At("HEAD"))
     private void sable$removeFromPhysics(final RemovalReason removalReason, final CallbackInfo ci) {
-        Sable.LOGGER.info("SABLE-CREATE-CONTRAPTION-REMOVE: uuid={}, entityId={}, type={}, reason={}, position={}, blocks={}, initialized={}",
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-REMOVE: uuid={}, entityId={}, type={}, reason={}, position={}, blocks={}, initialized={}",
                 this.getUUID(), this.getId(), this.getType(), removalReason, this.position(),
                 this.contraption == null ? -1 : this.contraption.getBlocks().size(), this.sable$initialized);
         if (this.level() instanceof final ServerLevel serverLevel) {
@@ -235,7 +235,7 @@ public abstract class AbstractContraptionEntityMixin extends Entity implements K
         }
 
         final SubLevel subLevel = Sable.HELPER.getContaining(this);
-        Sable.LOGGER.info("SABLE-CREATE-CONTRAPTION-CLIENT-TICK: uuid={}, entityId={}, type={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-CLIENT-TICK: uuid={}, entityId={}, type={}, "
                         + "position={}, chunk={}, subLevel={}, blocks={}, removed={}",
                 this.getUUID(), this.getId(), this.getType(), this.position(), this.chunkPosition(),
                 subLevel == null ? "none" : subLevel.getUniqueId(),

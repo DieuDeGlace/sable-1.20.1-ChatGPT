@@ -75,7 +75,7 @@ public abstract class EmbeddiumDirtyBridgeMixin {
         }
 
         if (SABLE$LOGGED_TERRAIN_LIFECYCLE.compareAndSet(false, true)) {
-            Sable.LOGGER.info("SABLE-EMBEDDIUM-REACHAROUND-TERRAIN: preRenderDrain=true, compile=true");
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-EMBEDDIUM-REACHAROUND-TERRAIN: preRenderDrain=true, compile=true");
         }
     }
 
@@ -129,7 +129,7 @@ public abstract class EmbeddiumDirtyBridgeMixin {
             shader.apply();
 
             if (SABLE$LOGGED_NATIVE_RENDER.compareAndSet(false, true)) {
-                Sable.LOGGER.info("[SABLE-EMBEDDIUM-NATIVE-RENDER] drawChunkLayerTail=true shader={}",
+                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "[SABLE-EMBEDDIUM-NATIVE-RENDER] drawChunkLayerTail=true shader={}",
                         shader.getName());
             }
             SubLevelRenderDispatcher.get().renderSectionLayer(container.getAllSubLevels(), renderType, shader,
@@ -156,7 +156,7 @@ public abstract class EmbeddiumDirtyBridgeMixin {
 
         final ClientSubLevel subLevel = (ClientSubLevel) Sable.HELPER.getContaining(level, new ChunkPos(x, z));
         if (subLevel == null) {
-            Sable.LOGGER.warn("SABLE-EMBEDDIUM-DIRTY-MISS: chunk=({}, {}, {}), playerChanged={}",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.warn(Sable.LOGGER, "SABLE-EMBEDDIUM-DIRTY-MISS: chunk=({}, {}, {}), playerChanged={}",
                     x, y, z, playerChanged);
             return;
         }
@@ -165,7 +165,7 @@ public abstract class EmbeddiumDirtyBridgeMixin {
 
         final long bridged = SABLE$BRIDGED_REBUILDS.incrementAndGet();
         if (bridged <= 16 || (bridged & (bridged - 1)) == 0) {
-            Sable.LOGGER.info("SABLE-EMBEDDIUM-DIRTY-BRIDGE: count={}, chunk=({}, {}, {}), playerChanged={}",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-EMBEDDIUM-DIRTY-BRIDGE: count={}, chunk=({}, {}, {}), playerChanged={}",
                     bridged, x, y, z, playerChanged);
         }
     }

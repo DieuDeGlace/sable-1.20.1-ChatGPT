@@ -51,7 +51,7 @@ public class DrawManagerMixin {
             }
         }
 
-        Sable.LOGGER.info("SABLE-FLYWHEEL-MODEL-ADMISSION: model={}, meshes={}, firstInvalidMaterial={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-MODEL-ADMISSION: model={}, meshes={}, firstInvalidMaterial={}, "
                         + "environment={}, instanceType={}, bias={}",
                 model.getClass().getName(), meshes.size(), firstInvalidMaterial,
                 key.environment().getClass().getName(), key.type().getClass().getName(), key.bias());

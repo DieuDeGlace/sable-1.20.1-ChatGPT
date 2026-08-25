@@ -25,7 +25,7 @@ public class VisualizationEventHandlerMixin {
         if (entity instanceof final AbstractContraptionEntity contraptionEntity) {
             final SubLevelContainer container = SubLevelContainer.getContainer(level);
             final boolean inPlotBounds = container != null && container.inBounds(entity.chunkPosition());
-            Sable.LOGGER.info("SABLE-CREATE-CONTRAPTION-JOIN: uuid={}, entityId={}, type={}, client={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-JOIN: uuid={}, entityId={}, type={}, client={}, "
                             + "position={}, chunk={}, alive={}, managerPresent={}, canVisualize={}, "
                             + "containerPresent={}, inPlotBounds={}, subLevel={}, blocks={}",
                     entity.getUUID(), entity.getId(), entity.getType(), level.isClientSide,

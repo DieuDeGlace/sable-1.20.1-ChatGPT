@@ -95,7 +95,7 @@ public abstract class ServerChunkCacheMixin {
             } else {
                 if (!this.sable$loggedEmptyFallback) {
                     this.sable$loggedEmptyFallback = true;
-                    sable$LOGGER.info("SABLE-PLOT-EMPTY-FALLBACK: routed unallocated plot-grid neighbor "
+                    dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-PLOT-EMPTY-FALLBACK: routed unallocated plot-grid neighbor "
                             + "({}, {}) to EmptyLevelChunk in {}; collision/raycast queries may safely continue",
                             x, z, this.level.dimension().location());
                 }

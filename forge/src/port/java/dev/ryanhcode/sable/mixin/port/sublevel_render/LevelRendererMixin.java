@@ -19,9 +19,11 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderBuffers;
+import net.minecraft.client.renderer.DimensionSpecialEffects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.BlockDestructionProgress;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -32,6 +34,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -67,6 +70,10 @@ public class LevelRendererMixin {
     @Final
     private Long2ObjectMap<SortedSet<BlockDestructionProgress>> destructionProgress;
 
+    @Shadow
+    @Final
+    private Set<BlockEntity> globalBlockEntities;
+
     @Unique
     private VanillaSubLevelBlockEntityRenderer sable$blockEntityRenderer;
 
@@ -100,7 +107,7 @@ public class LevelRendererMixin {
 
         if (LOGGED_PROJECTED_ENTITY_CHUNKS.size() < 96
                 && LOGGED_PROJECTED_ENTITY_CHUNKS.add(entity.getUUID())) {
-            LOGGER.info("SABLE-SUBLEVEL-ENTITY-COMPILED-CHUNK: uuid={}, entityId={}, plotPos={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-SUBLEVEL-ENTITY-COMPILED-CHUNK: uuid={}, entityId={}, plotPos={}, "
                             + "plotCompiled={}, projectedPos={}, projectedCompiled={}",
                     entity.getUUID(), entity.getId(), plotPosition,
                     original.call(instance, plotPosition), projectedBlockPosition, projectedCompiled);
@@ -120,27 +127,31 @@ public class LevelRendererMixin {
         SubLevelRenderDispatcher.get().rebuild(container.getAllSubLevels());
     }
 
-    @Inject(method = "renderLevel", at = @At(value = "INVOKE",
+    @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/renderer/DimensionSpecialEffects;constantAmbientLight()Z",
-            ordinal = 0, shift = At.Shift.BEFORE))
-    private void sable$renderSingleBlockSubLevels(final PoseStack poseStack, final float partialTick,
-                                                   final long finishNanoTime, final boolean renderBlockOutline,
-                                                   final Camera camera, final GameRenderer gameRenderer,
-                                                   final LightTexture lightTexture, final Matrix4f projection,
-                                                   final CallbackInfo ci) {
-        if (this.level == null) {
-            return;
+            ordinal = 0))
+    private boolean sable$renderSingleBlockSubLevels(final DimensionSpecialEffects effects,
+                                                       final PoseStack poseStack,
+                                                       final float partialTick,
+                                                       final long finishNanoTime,
+                                                       final boolean renderBlockOutline,
+                                                       final Camera camera,
+                                                       final GameRenderer gameRenderer,
+                                                       final LightTexture lightTexture,
+                                                       final Matrix4f projection) {
+        if (this.level != null) {
+            final Iterable<ClientSubLevel> sublevels = ((ClientSubLevelContainer)
+                    ((SubLevelContainerHolder) this.level).sable$getPlotContainer()).getAllSubLevels();
+            final Vec3 cameraPosition = camera.getPosition();
+            if (LOGGED_NATIVE_SINGLE_RENDER.compareAndSet(false, true)) {
+                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER,
+                        "[SABLE-NATIVE-SINGLE-RENDER] upstreamStage=true");
+            }
+            SubLevelRenderDispatcher.get().renderAfterSections(sublevels,
+                    cameraPosition.x, cameraPosition.y, cameraPosition.z,
+                    new Matrix4f(poseStack.last().pose()), projection, partialTick);
         }
-
-        final Iterable<ClientSubLevel> sublevels = ((ClientSubLevelContainer)
-                ((SubLevelContainerHolder) this.level).sable$getPlotContainer()).getAllSubLevels();
-        final Vec3 cameraPosition = camera.getPosition();
-        if (LOGGED_NATIVE_SINGLE_RENDER.compareAndSet(false, true)) {
-            LOGGER.info("[SABLE-NATIVE-SINGLE-RENDER] upstreamStage=true");
-        }
-        SubLevelRenderDispatcher.get().renderAfterSections(sublevels,
-                cameraPosition.x, cameraPosition.y, cameraPosition.z,
-                new Matrix4f(poseStack.last().pose()), projection, partialTick);
+        return effects.constantAmbientLight();
     }
 
     /**
@@ -150,37 +161,39 @@ public class LevelRendererMixin {
      * in its native collection phase. Oculus therefore retains ownership of
      * finalization; no late, out-of-band endBatch call is needed.
      */
-    @Inject(method = "renderLevel", at = @At(value = "FIELD",
+    @Redirect(method = "renderLevel", at = @At(value = "FIELD",
             target = "Lnet/minecraft/client/renderer/LevelRenderer;globalBlockEntities:Ljava/util/Set;",
-            shift = At.Shift.BEFORE, ordinal = 0))
-    private void sable$renderSubLevelBlockEntities(final PoseStack poseStack, final float partialTick,
-                                                    final long finishNanoTime, final boolean renderBlockOutline,
-                                                    final Camera camera, final GameRenderer gameRenderer,
-                                                    final LightTexture lightTexture, final Matrix4f projection,
-                                                    final CallbackInfo ci) {
-        if (this.level == null) {
-            return;
-        }
+            ordinal = 0))
+    private Set<BlockEntity> sable$renderSubLevelBlockEntities(final LevelRenderer owner,
+                                                                final PoseStack poseStack,
+                                                                final float partialTick,
+                                                                final long finishNanoTime,
+                                                                final boolean renderBlockOutline,
+                                                                final Camera camera,
+                                                                final GameRenderer gameRenderer,
+                                                                final LightTexture lightTexture,
+                                                                final Matrix4f projection) {
+        if (this.level != null) {
+            final SubLevelContainer rawContainer = SubLevelContainer.getContainer(this.level);
+            if (rawContainer instanceof final ClientSubLevelContainer container) {
+                if (this.sable$blockEntityRenderer == null) {
+                    this.sable$blockEntityRenderer = new VanillaSubLevelBlockEntityRenderer(
+                            net.minecraft.client.Minecraft.getInstance().getBlockEntityRenderDispatcher(),
+                            this.renderBuffers, this.destructionProgress);
+                }
 
-        final SubLevelContainer rawContainer = SubLevelContainer.getContainer(this.level);
-        if (!(rawContainer instanceof final ClientSubLevelContainer container)) {
-            return;
+                final Vec3 cameraPosition = camera.getPosition();
+                if (LOGGED_NATIVE_BLOCK_ENTITY_RENDER.compareAndSet(false, true)) {
+                    dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER,
+                            "[SABLE-NATIVE-BLOCK-ENTITY-RENDER] beforeGlobalBlockEntities=true "
+                                    + "bufferOwner=level-renderer");
+                }
+                ((VanillaSubLevelRenderDispatcher) SubLevelRenderDispatcher.get()).renderBlockEntities(
+                        container.getAllSubLevels(), this.sable$blockEntityRenderer,
+                        cameraPosition.x, cameraPosition.y, cameraPosition.z, partialTick,
+                        new Matrix4f(poseStack.last().pose()));
+            }
         }
-
-        if (this.sable$blockEntityRenderer == null) {
-            this.sable$blockEntityRenderer = new VanillaSubLevelBlockEntityRenderer(
-                    net.minecraft.client.Minecraft.getInstance().getBlockEntityRenderDispatcher(),
-                    this.renderBuffers, this.destructionProgress);
-        }
-
-        final Vec3 cameraPosition = camera.getPosition();
-        if (LOGGED_NATIVE_BLOCK_ENTITY_RENDER.compareAndSet(false, true)) {
-            LOGGER.info("[SABLE-NATIVE-BLOCK-ENTITY-RENDER] beforeGlobalBlockEntities=true "
-                    + "bufferOwner=level-renderer");
-        }
-        ((VanillaSubLevelRenderDispatcher) SubLevelRenderDispatcher.get()).renderBlockEntities(
-                container.getAllSubLevels(), this.sable$blockEntityRenderer,
-                cameraPosition.x, cameraPosition.y, cameraPosition.z, partialTick,
-                new Matrix4f(poseStack.last().pose()));
+        return this.globalBlockEntities;
     }
 }

@@ -35,7 +35,7 @@ public abstract class PostProcessingManagerMixin {
         source.resolveToFramebuffer(target, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         if (!sable$loggedActiveColorResolve) {
             sable$loggedActiveColorResolve = true;
-            SABLE$LOGGER.info("SABLE-VEIL-POST-RESOLVE: stage=post-pipeline-active mask=color filter=nearest");
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(SABLE$LOGGER, "SABLE-VEIL-POST-RESOLVE: stage=post-pipeline-active mask=color filter=nearest");
         }
     }
 
@@ -69,7 +69,7 @@ public abstract class PostProcessingManagerMixin {
     private static void sable$logColorResolve() {
         if (!sable$loggedColorResolve) {
             sable$loggedColorResolve = true;
-            SABLE$LOGGER.info("SABLE-VEIL-POST-RESOLVE: stage=post-pipeline mask=color filter=nearest");
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(SABLE$LOGGER, "SABLE-VEIL-POST-RESOLVE: stage=post-pipeline mask=color filter=nearest");
         }
     }
 }

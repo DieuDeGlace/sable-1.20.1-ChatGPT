@@ -59,7 +59,7 @@ public class EmbeddedEnvironmentMixin implements EmbeddedEnvironmentExtension {
 
         if (this.sable$sceneId != SableFlywheelLightStorage.STATIC_SCENE_ID
                 && sable$DRAW_TRACES.getAndIncrement() < 16) {
-            Sable.LOGGER.info("SABLE-FLYWHEEL-EMBEDDED-DRAW: program={}, modelUniform={}, normalUniform={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-EMBEDDED-DRAW: program={}, modelUniform={}, normalUniform={}, "
                             + "sceneUniform={}, sceneIdUniform={}, skyScaleUniform={}, sceneId={}, skyScale={}, "
                             + "modelTranslation=[{},{},{}], modelDet={}, sceneTranslation=[{},{},{}], sceneDet={}, "
                             + "modelFinite={}, sceneFinite={}",
@@ -93,7 +93,7 @@ public class EmbeddedEnvironmentMixin implements EmbeddedEnvironmentExtension {
 
         if (this.sable$sceneId != SableFlywheelLightStorage.STATIC_SCENE_ID
                 && sable$FLUSH_TRACES.getAndIncrement() < 8) {
-            Sable.LOGGER.info("SABLE-FLYWHEEL-EMBEDDED-FLUSH: sceneId={}, skyScale={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-EMBEDDED-FLUSH: sceneId={}, skyScale={}, "
                             + "modelTranslation=[{},{},{}], modelDet={}, sceneTranslation=[{},{},{}], sceneDet={}, "
                             + "modelFinite={}, sceneFinite={}",
                     this.sable$sceneId, this.sable$skyLightScale, this.poseComposed.m30(),

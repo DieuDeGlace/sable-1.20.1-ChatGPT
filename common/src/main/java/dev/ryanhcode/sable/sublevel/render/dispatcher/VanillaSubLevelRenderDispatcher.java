@@ -69,7 +69,7 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
         if (onSubLevel) {
             final String shaderPath = shader.getName() + ":" + (sableEnableNormalLighting != null);
             if (LOGGED_DYNAMIC_SHADE_SHADERS.add(shaderPath)) {
-                LOGGER.info("[SABLE-DYNAMIC-SHADE-SHADER] shader={} enabled={} uniformPresent={}",
+                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-DYNAMIC-SHADE-SHADER] shader={} enabled={} uniformPresent={}",
                         shader.getName(), enableDynamicShading, sableEnableNormalLighting != null);
             }
         }
@@ -331,7 +331,7 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
             return;
         }
         final Vec3 physicalBlockOrigin = renderPose.transformPosition(Vec3.atLowerCornerOf(blockEntity.getBlockPos()));
-        LOGGER.info("SABLE-BE-RENDER: sub-level={}, type={}, local={}, physical={}, camera={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-BE-RENDER: sub-level={}, type={}, local={}, physical={}, camera={}, "
                         + "localCamera={}, precision-safe=true",
                 sublevel.getUniqueId(), blockEntity.getType(), blockEntity.getBlockPos(), physicalBlockOrigin,
                 camera, localCamera);

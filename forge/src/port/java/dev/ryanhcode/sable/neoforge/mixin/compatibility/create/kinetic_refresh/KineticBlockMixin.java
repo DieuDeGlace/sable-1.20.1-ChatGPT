@@ -40,7 +40,7 @@ public abstract class KineticBlockMixin {
         }
 
         generator.updateGeneratedRotation();
-        Sable.LOGGER.info("SABLE-CREATE-GENERATOR-REACTIVATE: type={}, pos={}, generatedSpeed={}, actualSpeed={}, needsUpdate={}",
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-GENERATOR-REACTIVATE: type={}, pos={}, generatedSpeed={}, actualSpeed={}, needsUpdate={}",
                 generator.getType(), pos, generatedSpeed, generator.getSpeed(), generator.needsSpeedUpdate());
     }
 }

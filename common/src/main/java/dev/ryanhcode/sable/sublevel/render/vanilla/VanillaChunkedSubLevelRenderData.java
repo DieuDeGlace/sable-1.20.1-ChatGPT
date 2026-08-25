@@ -265,7 +265,7 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             this.sectionRenderDispatcher.uploadAllPendingUploads();
             profiler.pop();
             if (LOGGED_SYNC_UPLOAD_DRAIN.compareAndSet(false, true)) {
-                LOGGER.info("SABLE-CHUNK-SYNC-UPLOAD-DRAIN: synchronousBuilds={}, thread={}",
+                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-CHUNK-SYNC-UPLOAD-DRAIN: synchronousBuilds={}, thread={}",
                         synchronousBuilds, Thread.currentThread().getName());
             }
         }
@@ -413,7 +413,7 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             }
         }
         if (writeTrace) {
-            LOGGER.info("SABLE-SUBLEVEL-TERRAIN-DRAW: subLevel={}, layer={}, layerIdentity={}, shader={}, "
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-SUBLEVEL-TERRAIN-DRAW: subLevel={}, layer={}, layerIdentity={}, shader={}, "
                             + "shaderIdentity={}, shaderProgram={}, shaderProgramValid={}, activeProgram={}, "
                             + "drawFramebuffer={}, readFramebuffer={}, mainFramebuffer={}, draws={}, sections={}",
                     this.subLevel.getUniqueId(), layer, layerIdentity, shader.getName(), shaderIdentity,

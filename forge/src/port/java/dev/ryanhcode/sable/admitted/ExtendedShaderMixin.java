@@ -87,7 +87,7 @@ public class ExtendedShaderMixin implements ExtendedShaderExtension {
                 return;
             }
         }
-        Sable.LOGGER.info("SABLE-IRIS-PROGRAM-CACHE-RECOVERY: shader={}, shaderIdentity={}, "
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-IRIS-PROGRAM-CACHE-RECOVERY: shader={}, shaderIdentity={}, "
                         + "expectedProgram={}, expectedProgramValid={}, activeBefore={}, activeAfter={}, recovered={}",
                 shader.getName(), shaderIdentity, expectedProgram, expectedProgramValid,
                 activeProgram, activeAfter, recovered);

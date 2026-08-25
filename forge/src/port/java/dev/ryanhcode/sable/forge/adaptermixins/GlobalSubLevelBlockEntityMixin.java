@@ -8,9 +8,6 @@ import dev.ryanhcode.sable.companion.math.Pose3dc;
 import dev.ryanhcode.sable.mixinterface.BlockEntityRenderDispatcherExtension;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Camera;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
@@ -26,9 +23,8 @@ import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.Slice;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +34,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * Normal compiled block entities are rendered by the Forge stage bridge;
  * this redirect covers renderers whose shouldRenderOffScreen() is true.
  */
-@Mixin(LevelRenderer.class)
+// Oculus 1.8.0 modifies renderLevel's entity iterator at priority 999.
+// Apply afterwards so its implicit local-variable discriminator sees vanilla's table.
+@Mixin(value = LevelRenderer.class, priority = 900)
 public abstract class GlobalSubLevelBlockEntityMixin {
     @Unique private static final Logger sable$LOGGER = LogUtils.getLogger();
     @Unique private static final Set<String> sable$loggedRenderPaths = ConcurrentHashMap.newKeySet();
@@ -51,18 +49,26 @@ public abstract class GlobalSubLevelBlockEntityMixin {
      * Plot coordinates are around twenty million blocks; trying to undo vanilla's
      * float translation after it happened loses several blocks of precision.
      */
-    @Inject(method = "renderLevel", at = @At("HEAD"))
-    private void sable$captureWorldRenderBasis(final PoseStack poseStack,
-                                               final float partialTick,
-                                               final long finishNanoTime,
-                                               final boolean renderBlockOutline,
-                                               final Camera camera,
-                                               final GameRenderer gameRenderer,
-                                               final LightTexture lightTexture,
-                                               final Matrix4f projectionMatrix,
-                                               final CallbackInfo ci) {
+    @Redirect(
+            method = "renderLevel",
+            slice = @Slice(
+                    from = @At(
+                            value = "INVOKE",
+                            target = "Lnet/minecraft/client/renderer/culling/Frustum;isVisible(Lnet/minecraft/world/phys/AABB;)Z",
+                            ordinal = 1
+                    ),
+                    to = @At(
+                            value = "INVOKE",
+                            target = "Lnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;render(Lnet/minecraft/world/level/block/entity/BlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V",
+                            ordinal = 1
+                    )
+            ),
+            at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;pushPose()V")
+    )
+    private void sable$captureWorldRenderBasis(final PoseStack poseStack) {
         this.sable$baseWorldPose.set(poseStack.last().pose());
         this.sable$baseWorldNormal.set(poseStack.last().normal());
+        poseStack.pushPose();
     }
 
     /**
@@ -92,7 +98,7 @@ public abstract class GlobalSubLevelBlockEntityMixin {
         final boolean visible = frustum.isVisible(physicalBounds);
         final String diagnosticKey = subLevel.getUniqueId() + ":" + renderBounds;
         if (sable$loggedCullPaths.size() < 64 && sable$loggedCullPaths.add(diagnosticKey)) {
-            sable$LOGGER.info("SABLE-BE-GLOBAL-CULL: sub-level={}, plotBounds={}, physicalBounds={}, visible={}",
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-BE-GLOBAL-CULL: sub-level={}, plotBounds={}, physicalBounds={}, visible={}",
                     subLevel.getUniqueId(), renderBounds, physicalBounds, visible);
         }
         return visible;
@@ -144,7 +150,7 @@ public abstract class GlobalSubLevelBlockEntityMixin {
             final String diagnosticKey = subLevel.getUniqueId() + ":" + blockEntity.getType();
             if (sable$loggedRenderPaths.size() < 64 && sable$loggedRenderPaths.add(diagnosticKey)) {
                 final Vec3 physicalBlockOrigin = renderPose.transformPosition(Vec3.atLowerCornerOf(blockPos));
-                sable$LOGGER.info("SABLE-BE-GLOBAL-RENDER: sub-level={}, type={}, local={}, physical={}, "
+                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-BE-GLOBAL-RENDER: sub-level={}, type={}, local={}, physical={}, "
                                 + "camera={}, localCamera={}, precision-safe=true",
                         subLevel.getUniqueId(), blockEntity.getType(), blockPos, physicalBlockOrigin,
                         camera, localCamera);

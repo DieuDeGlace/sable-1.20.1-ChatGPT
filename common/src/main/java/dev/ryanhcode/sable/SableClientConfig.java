@@ -67,7 +67,7 @@ public final class SableClientConfig {
         final boolean requestedDynamicShading = SUB_LEVEL_DYNAMIC_SHADING.get();
         final boolean shadingChanged = SableDynamicDirectionalShading.isEnabled() != requestedDynamicShading;
         SableDynamicDirectionalShading.setIsEnabled(requestedDynamicShading);
-        LOGGER.info("[SABLE-DYNAMIC-SHADE-CONFIG] enabled={} changed={} notify={}",
+        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-DYNAMIC-SHADE-CONFIG] enabled={} changed={} notify={}",
                 requestedDynamicShading, shadingChanged, notify);
 
         Minecraft.getInstance().execute(() -> {
@@ -80,7 +80,7 @@ public final class SableClientConfig {
                     ? null : SubLevelContainer.getContainer(Minecraft.getInstance().level);
             if (container != null) {
                 container.getAllSubLevels().forEach(subLevel -> subLevel.getRenderData().rebuild());
-                LOGGER.info("[SABLE-DYNAMIC-SHADE-REBUILD] rebuilt {} loaded sub-level renderers",
+                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-DYNAMIC-SHADE-REBUILD] rebuilt {} loaded sub-level renderers",
                         container.getAllSubLevels().size());
             }
         });

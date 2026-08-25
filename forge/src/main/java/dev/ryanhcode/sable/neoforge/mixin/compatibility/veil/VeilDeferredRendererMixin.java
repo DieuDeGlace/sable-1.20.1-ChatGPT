@@ -35,7 +35,7 @@ public abstract class VeilDeferredRendererMixin {
         source.resolveToAdvancedFbo(target, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         if (!sable$loggedColorResolve) {
             sable$loggedColorResolve = true;
-            SABLE$LOGGER.info("SABLE-VEIL-POST-RESOLVE: stage=deferred-blit mask=color filter=nearest");
+            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(SABLE$LOGGER, "SABLE-VEIL-POST-RESOLVE: stage=deferred-blit mask=color filter=nearest");
         }
     }
 }
