@@ -15,16 +15,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 @Mixin(value = ShaderSources.class, remap = false)
 public class ShaderSourcesMixin {
     private static final Logger SABLE$LOGGER = LogUtils.getLogger();
-    private static final ResourceLocation SABLE$FLYWHEEL_MATRICES = new ResourceLocation(
-            "flywheel", "internal/indirect/matrices.glsl");
-    private static final ResourceLocation SABLE$EXTENDED_MATRICES = new ResourceLocation(
-            "sable", "internal/indirect/matrices.glsl");
+    private static final Map<ResourceLocation, ResourceLocation> SABLE$SOURCE_ALIASES = sable$sourceAliases();
 
     @Shadow
     @Final
@@ -32,38 +30,39 @@ public class ShaderSourcesMixin {
 
     /**
      * Forge 1.20.1's combined mod resource pack does not guarantee that Sable's
-     * same-namespace Flywheel source wins over Flywheel's own copy.  Redirect the
-     * already-parsed include graph before program compilation so the 192-byte Java
-     * matrix stride and the shader struct are unconditionally the same definition.
+     * same-namespace Flywheel source wins over Flywheel's own copy. Redirect every
+     * source that participates in Sable's matrix and lighting ABI before program
+     * compilation, so entry points, includes and the 192-byte Java matrix stride
+     * always come from one coherent source set.
      */
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void sable$bindExtendedMatrixSource(final CallbackInfo ci) {
-        final LoadResult extendedResult = this.cache.get(SABLE$EXTENDED_MATRICES);
-        if (!(extendedResult instanceof final LoadResult.Success extendedSuccess)) {
-            throw new IllegalStateException("Sable's extended Flywheel matrix shader source was not loaded: "
-                    + SABLE$EXTENDED_MATRICES);
-        }
-
-        final SourceFile extended = extendedSuccess.source();
-        final Set<SourceFile> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+    private void sable$bindCoherentShaderAbi(final CallbackInfo ci) {
         int replacements = 0;
-        for (final LoadResult result : this.cache.values()) {
-            if (result instanceof final LoadResult.Success success) {
-                replacements += sable$replaceMatrixIncludes(success.source(), extended, visited);
+        for (final Map.Entry<ResourceLocation, ResourceLocation> alias : SABLE$SOURCE_ALIASES.entrySet()) {
+            final ResourceLocation originalName = alias.getKey();
+            final ResourceLocation extendedName = alias.getValue();
+            final LoadResult extendedResult = this.cache.get(extendedName);
+            if (!(extendedResult instanceof final LoadResult.Success extendedSuccess)) {
+                throw new IllegalStateException("Sable's coherent Flywheel shader source was not loaded: "
+                        + extendedName);
             }
+
+            final SourceFile extended = extendedSuccess.source();
+            final Set<SourceFile> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (final LoadResult result : this.cache.values()) {
+                if (result instanceof final LoadResult.Success success) {
+                    replacements += sable$replaceIncludes(success.source(), originalName, extended, visited);
+                }
+            }
+            this.cache.put(originalName, extendedResult);
         }
 
-        if (replacements == 0) {
-            throw new IllegalStateException("No Flywheel shader include referenced the matrix source "
-                    + SABLE$FLYWHEEL_MATRICES);
-        }
-        this.cache.put(SABLE$FLYWHEEL_MATRICES, extendedResult);
-        SABLE$LOGGER.info("Sable bound {} Flywheel shader include(s) to the extended 192-byte matrix layout",
-                replacements);
+        SABLE$LOGGER.info("SABLE-FLYWHEEL-SHADER-ABI: aliases={}, includeReplacements={}, matrixStrideBytes=192",
+                SABLE$SOURCE_ALIASES.size(), replacements);
     }
 
-    private static int sable$replaceMatrixIncludes(final SourceFile source, final SourceFile extended,
-                                                    final Set<SourceFile> visited) {
+    private static int sable$replaceIncludes(final SourceFile source, final ResourceLocation originalName,
+                                             final SourceFile extended, final Set<SourceFile> visited) {
         if (!visited.add(source)) {
             return 0;
         }
@@ -71,13 +70,33 @@ public class ShaderSourcesMixin {
         int replacements = 0;
         for (int i = 0; i < source.included.size(); i++) {
             final SourceFile included = source.included.get(i);
-            if (included.name.equals(SABLE$FLYWHEEL_MATRICES)) {
+            if (included.name.equals(originalName)) {
                 source.included.set(i, extended);
                 replacements++;
             } else {
-                replacements += sable$replaceMatrixIncludes(included, extended, visited);
+                replacements += sable$replaceIncludes(included, originalName, extended, visited);
             }
         }
         return replacements;
+    }
+
+    private static Map<ResourceLocation, ResourceLocation> sable$sourceAliases() {
+        final Map<ResourceLocation, ResourceLocation> aliases = new LinkedHashMap<>();
+        sable$alias(aliases, "internal/common.vert");
+        sable$alias(aliases, "internal/api_impl.glsl");
+        sable$alias(aliases, "internal/light_lut.glsl");
+        sable$alias(aliases, "internal/instancing/light.glsl");
+        sable$alias(aliases, "internal/indirect/light.glsl");
+        sable$alias(aliases, "internal/indirect/matrices.glsl");
+        sable$alias(aliases, "internal/instancing/main.vert");
+        sable$alias(aliases, "internal/indirect/main.vert");
+        sable$alias(aliases, "light/flat.glsl");
+        sable$alias(aliases, "light/smooth.glsl");
+        sable$alias(aliases, "light/smooth_when_embedded.glsl");
+        return Collections.unmodifiableMap(aliases);
+    }
+
+    private static void sable$alias(final Map<ResourceLocation, ResourceLocation> aliases, final String path) {
+        aliases.put(new ResourceLocation("flywheel", path), new ResourceLocation("sable", path));
     }
 }
