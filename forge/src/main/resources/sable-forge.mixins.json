@@ -17,6 +17,8 @@
     "admitted.GlobalSubLevelBlockEntityMixin",
     "block_outline_render.LevelRendererMixin",
     "camera_rotation.CameraMixin",
+    "compatibility.veil.PostProcessingManagerMixin",
+    "compatibility.veil.VeilDeferredRendererMixin",
     "dynamic_directional_shading.ChunkRenderRebuildTaskMixin",
     "sound.MovingSoundInstanceDelegateMixin"
   ],

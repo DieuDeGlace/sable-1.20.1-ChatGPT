@@ -74,6 +74,7 @@ sourceSets {
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/create'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/veil'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/physics/callback'
@@ -96,6 +97,7 @@ sourceSets {
                 selectedCreate = selectedCreate
                         || path.contains('/neoforge/compatibility/flywheel/')
                         || path.contains('/neoforge/mixin/compatibility/flywheel/')
+                        || path.contains('/neoforge/mixin/compatibility/veil/')
                         || path.contains('/neoforge/mixinhelper/compatibility/flywheel/')
                         || path.contains('/neoforge/mixinterface/compatibility/flywheel/')
                 selectedCreate = selectedCreate || path.contains('/neoforge/mixin/compatibility/create/fans_provide_force/')
@@ -714,6 +716,9 @@ tasks.named('sourcesJar') {
         include 'dev/ryanhcode/sable/mixin/port/sublevel_render/**'
         include 'dev/ryanhcode/sable/neoforge/mixin/dynamic_directional_shading/ChunkRenderRebuildTaskMixin.java'
         include 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/kinetic_refresh/KineticBlockMixin.java'
+    }
+    from('src/main/java') {
+        include 'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/**'
     }
 }
 

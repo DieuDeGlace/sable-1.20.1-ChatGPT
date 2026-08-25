@@ -188,6 +188,8 @@ function Assert-ProductionJar {
             'assets/sable/flywheel/light/smooth.glsl',
             'assets/sable/flywheel/light/smooth_when_embedded.glsl',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/immersiveengineering/TurretBlockEntityMixin.class',
+            'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/PostProcessingManagerMixin.class',
+            'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/VeilDeferredRendererMixin.class',
             'LICENSE.md',
             'THIRD_PARTY_NOTICES.md'
         )) {
