@@ -164,6 +164,7 @@
     "sublevel_sounds.SoundEngineMixin",
     "options.OptionsScreenMixin",
     "command.ClientSuggestionProviderMixin",
+    "compatibility.iris.ExtendedShaderMixin",
     "conduit.ConduitRendererMixin",
     "config.GameRendererAccessor",
     "dynamic_directional_shading.AmbientOcclusionFaceMixin",

@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.joml.Vector3d;
 
 /**
@@ -68,8 +69,21 @@ public interface BlockEntityPropeller {
         return Mth.clamp((airflow + velocity.dot(thrustDirection.x, thrustDirection.y, thrustDirection.z)) / airflow, 0, 1);
     }
 
-    Level getLevel();
+    /**
+     * Forge production mappings rename {@link BlockEntity#getLevel()}, but cannot infer that an
+     * identically named abstract method declared by this API is the same Minecraft method. Keep a
+     * default bridge owned by this stable API so separately remapped implementors remain binary
+     * compatible at runtime.
+     */
+    default Level getLevel() {
+        return ((BlockEntity) this).getLevel();
+    }
 
-    BlockPos getBlockPos();
+    /**
+     * See {@link #getLevel()} for why this Minecraft accessor needs an API-owned default bridge.
+     */
+    default BlockPos getBlockPos() {
+        return ((BlockEntity) this).getBlockPos();
+    }
 }
 

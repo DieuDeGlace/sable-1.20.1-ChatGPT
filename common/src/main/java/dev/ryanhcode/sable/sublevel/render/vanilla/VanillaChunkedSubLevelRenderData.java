@@ -9,6 +9,7 @@ import dev.ryanhcode.sable.companion.math.BoundingBox3i;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
+import dev.ryanhcode.sable.compatibility.SableIrisCompat;
 import dev.ryanhcode.sable.mixin.sublevel_render.RenderSectionAccessor;
 import dev.ryanhcode.sable.mixinterface.sublevel_render.vanilla.RenderSectionExtension;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
@@ -28,12 +29,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.joml.*;
+import org.lwjgl.opengl.GL20C;
+import org.lwjgl.opengl.GL30C;
 import org.slf4j.Logger;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A renderer and view area for a {@link dev.ryanhcode.sable.sublevel.SubLevel}.
@@ -41,9 +44,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final AtomicInteger LIGHT_DRAW_TRACES_WRITTEN = new AtomicInteger();
     private static final AtomicBoolean LOGGED_SYNC_UPLOAD_DRAIN = new AtomicBoolean();
-    private static final int LIGHT_DRAW_TRACE_LIMIT = 40;
+    private static final int TERRAIN_DRAW_TRACE_LIMIT = 512;
+    private static final Set<String> TRACED_TERRAIN_DRAW_STATES = new HashSet<>();
     private static final Matrix4f TRANSFORM = new Matrix4f();
     private static final Matrix4f MODEL_MATRIX = new Matrix4f();
 
@@ -363,23 +366,20 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
         if (shader.MODEL_VIEW_MATRIX != null) {
             shader.MODEL_VIEW_MATRIX.set(modelView.mul(transform, MODEL_MATRIX));
             shader.MODEL_VIEW_MATRIX.upload();
-
-        }
-
-        if (LIGHT_DRAW_TRACES_WRITTEN.getAndIncrement() < LIGHT_DRAW_TRACE_LIMIT) {
-            final Matrix3f baseAxes = new Matrix3f(modelView);
-            final Matrix3f submittedAxes = new Matrix3f(MODEL_MATRIX);
-            final Matrix3f recoveredObjectAxes = new Matrix3f(baseAxes).invert().mul(submittedAxes);
-            LOGGER.info("[SABLE-LIGHTMAP-DRAW] shader={} skyScale={}/15 pos=[{},{},{}] rotation=[{},{},{},{}] " +
-                            "baseDet={} submittedDet={} recoveredDet={}",
-                    shader.getName(), this.subLevel.getLatestSkyLightScale(),
-                    renderPos.x(), renderPos.y(), renderPos.z(),
-                    renderRot.x(), renderRot.y(), renderRot.z(), renderRot.w(),
-                    baseAxes.determinant(), submittedAxes.determinant(), recoveredObjectAxes.determinant());
+            // Preserve the upstream Iris contract. The optional bridge is a
+            // no-op unless Oculus/Iris applied the matching pseudo mixin.
+            SableIrisCompat.refreshModelMatrices(shader);
         }
 
         // TODO: sorting
         final Uniform chunkOffsetUniform = shader.CHUNK_OFFSET;
+
+        final int shaderProgram = shader.getId();
+        final int activeProgram = GL20C.glGetInteger(GL20C.GL_CURRENT_PROGRAM);
+        final boolean shaderProgramValid = GL20C.glIsProgram(shaderProgram);
+        final int drawFramebuffer = GL30C.glGetInteger(GL30C.GL_DRAW_FRAMEBUFFER_BINDING);
+        final int readFramebuffer = GL30C.glGetInteger(GL30C.GL_READ_FRAMEBUFFER_BINDING);
+        final int mainFramebuffer = Minecraft.getInstance().getMainRenderTarget().frameBufferId;
 
         int draws = 0;
         for (final ChunkRenderDispatcher.RenderChunk renderSection : this.allRenderSections) {
@@ -398,6 +398,27 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             buffer.bind();
             buffer.draw();
             draws++;
+        }
+
+        final int shaderIdentity = System.identityHashCode(shader);
+        final int layerIdentity = System.identityHashCode(layer);
+        final String traceKey = this.subLevel.getUniqueId() + ":" + shaderIdentity + ":" + layerIdentity
+                + ":" + shaderProgram + ":" + activeProgram + ":" + drawFramebuffer
+                + ":" + readFramebuffer + ":" + mainFramebuffer + ":" + draws
+                + ":" + this.allRenderSections.size();
+        boolean writeTrace = false;
+        synchronized (TRACED_TERRAIN_DRAW_STATES) {
+            if (TRACED_TERRAIN_DRAW_STATES.size() < TERRAIN_DRAW_TRACE_LIMIT) {
+                writeTrace = TRACED_TERRAIN_DRAW_STATES.add(traceKey);
+            }
+        }
+        if (writeTrace) {
+            LOGGER.info("SABLE-SUBLEVEL-TERRAIN-DRAW: subLevel={}, layer={}, layerIdentity={}, shader={}, "
+                            + "shaderIdentity={}, shaderProgram={}, shaderProgramValid={}, activeProgram={}, "
+                            + "drawFramebuffer={}, readFramebuffer={}, mainFramebuffer={}, draws={}, sections={}",
+                    this.subLevel.getUniqueId(), layer, layerIdentity, shader.getName(), shaderIdentity,
+                    shaderProgram, shaderProgramValid, activeProgram, drawFramebuffer, readFramebuffer,
+                    mainFramebuffer, draws, this.allRenderSections.size());
         }
 
         if (chunkOffsetUniform != null) {

@@ -19,6 +19,9 @@
     "camera_rotation.CameraMixin",
     "compatibility.veil.PostProcessingManagerMixin",
     "compatibility.veil.VeilDeferredRendererMixin",
+    "diagnostic.FirstPersonHandDiagnosticMixin",
+    "diagnostic.GlDebugMixin",
+    "dynamic_directional_shading.ChunkRenderCompileResultsAccessor",
     "dynamic_directional_shading.ChunkRenderRebuildTaskMixin",
     "sound.MovingSoundInstanceDelegateMixin"
   ],

@@ -5,6 +5,8 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.engine_room.flywheel.api.visual.BlockEntityVisual;
 import dev.engine_room.flywheel.api.visual.LightUpdatedVisual;
+import dev.engine_room.flywheel.api.backend.Backend;
+import dev.engine_room.flywheel.api.backend.BackendManager;
 import dev.engine_room.flywheel.api.visualization.BlockEntityVisualizer;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -16,6 +18,7 @@ import dev.ryanhcode.sable.api.sublevel.ClientSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
 import dev.ryanhcode.sable.neoforge.mixinhelper.compatibility.flywheel.SubLevelEmbedding;
+import dev.ryanhcode.sable.neoforge.compatibility.flywheel.SableFlywheelDiagnostics;
 import dev.ryanhcode.sable.neoforge.mixinterface.compatibility.flywheel.BlockEntityStorageExtension;
 import dev.ryanhcode.sable.neoforge.mixinterface.compatibility.flywheel.EmbeddedEnvironmentExtension;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
@@ -24,6 +27,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.joml.*;
@@ -35,12 +39,19 @@ import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Adds compatibility with Flywheel by redirecting the addition of {@link BlockEntityVisual BlockEntityVisuals} to {@link VisualEmbedding VisualEmbeddings} if they reside in a data plot.
  */
 @Mixin(value = BlockEntityStorage.class, remap = false)
 public abstract class BlockEntityStorageMixin extends Storage<BlockEntity> implements BlockEntityStorageExtension {
+
+    @Unique
+    private static final Set<String> sable$LOGGED_EMBEDDING_STATES = ConcurrentHashMap.newKeySet();
+    @Unique
+    private static final Set<String> sable$LOGGED_VISUAL_TYPES = ConcurrentHashMap.newKeySet();
 
     // Storage for temporary pose values to avoid repeated allocation
     @Unique
@@ -156,6 +167,20 @@ public abstract class BlockEntityStorageMixin extends Storage<BlockEntity> imple
         final Matrix3f normal = transformation.normal(this.sable$normalMatStorage);
         embedding.transforms(transformation, normal);
 
+        final Backend backend = BackendManager.currentBackend();
+        final String backendId = String.valueOf(Backend.REGISTRY.getId(backend));
+        final String embeddingState = subLevel.getUniqueId() + ":" + backendId;
+        if (sable$LOGGED_EMBEDDING_STATES.size() < 32
+                && sable$LOGGED_EMBEDDING_STATES.add(embeddingState)) {
+            Sable.LOGGER.info("SABLE-FLYWHEEL-EMBEDDING: subLevel={}, backend={}, backendOn={}, "
+                            + "parentOrigin={}, localOrigin={}, position={}, rotationPoint={}, "
+                            + "matrixTranslation=({}, {}, {}), matrixDet={}, normalDet={}, finite={}",
+                    subLevel.getUniqueId(), backendId, BackendManager.isBackendOn(), parentOrigin,
+                    localOrigin, position, rotationPoint, transformation.m30(), transformation.m31(),
+                    transformation.m32(), transformation.determinant(), normal.determinant(),
+                    transformation.isFinite() && normal.isFinite());
+        }
+
         final PoseStack sceneMatrix = new PoseStack();
         final ChunkPos centerChunk = subLevel.getPlot().getCenterChunk();
         sceneMatrix.translate(
@@ -198,6 +223,19 @@ public abstract class BlockEntityStorageMixin extends Storage<BlockEntity> imple
 
         final BlockEntityVisual<?> newVisual = original.call(instance, embedding, blockEntity, partialTick);
         this.sable$subLevelEmbeddings.get(subLevel).blockEntities().add(blockEntity);
+        if (newVisual != null) {
+            SableFlywheelDiagnostics.embeddedVisualCreated();
+        }
+
+        final String typeId = String.valueOf(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()));
+        final String visualKey = subLevel.getUniqueId() + ":" + typeId;
+        if (sable$LOGGED_VISUAL_TYPES.size() < 64 && sable$LOGGED_VISUAL_TYPES.add(visualKey)) {
+            Sable.LOGGER.info("SABLE-FLYWHEEL-VISUAL: subLevel={}, blockEntityType={}, localPos={}, "
+                            + "visualClass={}, embeddingOrigin={}, backend={}",
+                    subLevel.getUniqueId(), typeId, blockEntity.getBlockPos(),
+                    newVisual == null ? "null" : newVisual.getClass().getName(), embedding.renderOrigin(),
+                    Backend.REGISTRY.getId(BackendManager.currentBackend()));
+        }
 
         return newVisual;
     }

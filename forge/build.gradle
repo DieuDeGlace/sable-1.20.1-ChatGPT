@@ -75,6 +75,7 @@ sourceSets {
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/veil'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/diagnostic'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/physics/callback'
@@ -98,6 +99,7 @@ sourceSets {
                         || path.contains('/neoforge/compatibility/flywheel/')
                         || path.contains('/neoforge/mixin/compatibility/flywheel/')
                         || path.contains('/neoforge/mixin/compatibility/veil/')
+                        || path.contains('/neoforge/mixin/diagnostic/')
                         || path.contains('/neoforge/mixinhelper/compatibility/flywheel/')
                         || path.contains('/neoforge/mixinterface/compatibility/flywheel/')
                 selectedCreate = selectedCreate || path.contains('/neoforge/mixin/compatibility/create/fans_provide_force/')
@@ -117,6 +119,8 @@ sourceSets {
                         || path.contains('/neoforge/mixin/entities_stick_sublevels/effects/')
                         || path.contains('/neoforge/mixin/sound/')
                         || path.contains('/neoforge/mixin/dynamic_directional_shading/')
+                def selectedIrisBridge = path.endsWith('/compatibility/SableIrisCompat.java')
+                        || path.endsWith('/mixinterface/compatibility/iris/ExtendedShaderExtension.java')
                 def selectedVanilla = path.contains('/mixin/block_placement/')
                         || path.contains('/mixin/chunk_container_replacement/')
                         || path.contains('/mixin/game_test/')
@@ -139,7 +143,7 @@ sourceSets {
                 def selectedTargetRenderAdapter = path.contains('/forge/src/port/java/dev/ryanhcode/sable/mixin/port/sublevel_render/')
                 def excludedSource = path.endsWith('/mixin/entity/entity_aabb_lookup/ClientLevelMixin.java')
                         || path.endsWith('/mixin/interaction_distance/PlayerMixin.java')
-                        || (path.contains('/compatibility/') && !selectedCreate)
+                        || (path.contains('/compatibility/') && !selectedCreate && !selectedIrisBridge)
                         || (path.contains('/mixin/')
                         && !selectedCreate
                         && !selectedTargetRenderAdapter
@@ -402,6 +406,9 @@ sourceSets {
             exclude 'dev/ryanhcode/sable/mixin/sublevel_render/RenderSectionAccessor.java'
             exclude 'dev/ryanhcode/sable/mixin/level_accelerator/ServerChunkCacheAccessor.java'
             exclude 'dev/ryanhcode/sable/mixin/plot/ServerChunkCacheMixin.java'
+            // The upstream Iris mixin directly links the 1.21 Iris class.
+            // Production uses the optional 1.20 adapter from src/port/java.
+            exclude 'dev/ryanhcode/sable/mixin/compatibility/iris/ExtendedShaderMixin.java'
         }
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
     }
@@ -719,6 +726,7 @@ tasks.named('sourcesJar') {
     }
     from('src/main/java') {
         include 'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/**'
+        include 'dev/ryanhcode/sable/neoforge/mixin/diagnostic/**'
     }
 }
 

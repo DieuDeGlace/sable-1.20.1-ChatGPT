@@ -21,6 +21,23 @@ public abstract class PostProcessingManagerMixin {
     private static final Logger SABLE$LOGGER = LogUtils.getLogger();
     @Unique
     private static boolean sable$loggedColorResolve;
+    @Unique
+    private static boolean sable$loggedActiveColorResolve;
+
+    @Redirect(
+            method = "runPipeline()V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lfoundry/veil/api/client/render/framebuffer/AdvancedFbo;resolveToFramebuffer(Lcom/mojang/blaze3d/pipeline/RenderTarget;)V"
+            )
+    )
+    private void sable$resolveActivePostColorOnly(final AdvancedFbo source, final RenderTarget target) {
+        source.resolveToFramebuffer(target, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        if (!sable$loggedActiveColorResolve) {
+            sable$loggedActiveColorResolve = true;
+            SABLE$LOGGER.info("SABLE-VEIL-POST-RESOLVE: stage=post-pipeline-active mask=color filter=nearest");
+        }
+    }
 
     @Redirect(
             method = "runPipeline(Lfoundry/veil/api/client/render/post/PostPipeline;Z)V",

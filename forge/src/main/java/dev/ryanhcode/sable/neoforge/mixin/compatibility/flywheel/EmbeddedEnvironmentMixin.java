@@ -3,6 +3,7 @@ package dev.ryanhcode.sable.neoforge.mixin.compatibility.flywheel;
 import dev.engine_room.flywheel.backend.engine.embed.EmbeddedEnvironment;
 import dev.engine_room.flywheel.backend.gl.shader.GlProgram;
 import dev.engine_room.flywheel.lib.util.ExtraMemoryOps;
+import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.neoforge.compatibility.flywheel.SableFlywheelEmbeddingUniforms;
 import dev.ryanhcode.sable.neoforge.compatibility.flywheel.SableFlywheelLightStorage;
 import dev.ryanhcode.sable.neoforge.mixinterface.compatibility.flywheel.EmbeddedEnvironmentExtension;
@@ -14,8 +15,16 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Mixin(EmbeddedEnvironment.class)
 public class EmbeddedEnvironmentMixin implements EmbeddedEnvironmentExtension {
+
+    @Unique
+    private static final AtomicInteger sable$DRAW_TRACES = new AtomicInteger();
+
+    @Unique
+    private static final AtomicInteger sable$FLUSH_TRACES = new AtomicInteger();
 
     @Shadow
     @Final
@@ -47,6 +56,24 @@ public class EmbeddedEnvironmentMixin implements EmbeddedEnvironmentExtension {
         } else {
             program.setMat4(SableFlywheelEmbeddingUniforms.SCENE_MATRIX, this.sable$scene);
         }
+
+        if (this.sable$sceneId != SableFlywheelLightStorage.STATIC_SCENE_ID
+                && sable$DRAW_TRACES.getAndIncrement() < 16) {
+            Sable.LOGGER.info("SABLE-FLYWHEEL-EMBEDDED-DRAW: program={}, modelUniform={}, normalUniform={}, "
+                            + "sceneUniform={}, sceneIdUniform={}, skyScaleUniform={}, sceneId={}, skyScale={}, "
+                            + "modelTranslation=[{},{},{}], modelDet={}, sceneTranslation=[{},{},{}], sceneDet={}, "
+                            + "modelFinite={}, sceneFinite={}",
+                    program.handle(), program.getUniformLocation("_flw_modelMatrixUniform"),
+                    program.getUniformLocation("_flw_normalMatrixUniform"),
+                    program.getUniformLocation(SableFlywheelEmbeddingUniforms.SCENE_MATRIX),
+                    program.getUniformLocation(SableFlywheelEmbeddingUniforms.SCENE),
+                    program.getUniformLocation(SableFlywheelEmbeddingUniforms.SKY_LIGHT_SCALE),
+                    this.sable$sceneId, this.sable$skyLightScale,
+                    this.poseComposed.m30(), this.poseComposed.m31(), this.poseComposed.m32(),
+                    this.poseComposed.determinant(), this.sable$scene.m30(), this.sable$scene.m31(),
+                    this.sable$scene.m32(), this.sable$scene.determinant(), this.poseComposed.isFinite(),
+                    this.sable$scene.isFinite());
+        }
     }
 
     @Inject(method = "flush", at = @At("TAIL"))
@@ -62,6 +89,17 @@ public class EmbeddedEnvironmentMixin implements EmbeddedEnvironmentExtension {
             ExtraMemoryOps.putMatrix4f(sceneMatrixOffset, this.poseComposed);
         } else {
             ExtraMemoryOps.putMatrix4f(sceneMatrixOffset, this.sable$scene);
+        }
+
+        if (this.sable$sceneId != SableFlywheelLightStorage.STATIC_SCENE_ID
+                && sable$FLUSH_TRACES.getAndIncrement() < 8) {
+            Sable.LOGGER.info("SABLE-FLYWHEEL-EMBEDDED-FLUSH: sceneId={}, skyScale={}, "
+                            + "modelTranslation=[{},{},{}], modelDet={}, sceneTranslation=[{},{},{}], sceneDet={}, "
+                            + "modelFinite={}, sceneFinite={}",
+                    this.sable$sceneId, this.sable$skyLightScale, this.poseComposed.m30(),
+                    this.poseComposed.m31(), this.poseComposed.m32(), this.poseComposed.determinant(),
+                    this.sable$scene.m30(), this.sable$scene.m31(), this.sable$scene.m32(),
+                    this.sable$scene.determinant(), this.poseComposed.isFinite(), this.sable$scene.isFinite());
         }
     }
 }

@@ -205,6 +205,48 @@ function Assert-ProductionJar {
             throw "Development-only content entered the production JAR: $($forbidden -join ', ')"
         }
 
+        # Mixin configuration is executable production metadata. Check every
+        # configured class generically so selective source roots cannot publish
+        # a configuration entry without its corresponding class file.
+        foreach ($configName in @('sable.mixins.json', 'sable-create.mixins.json', 'sable-forge.mixins.json')) {
+            $configEntry = $archive.GetEntry($configName)
+            if ($null -eq $configEntry) {
+                throw "Production JAR is missing $configName"
+            }
+            $configStream = $configEntry.Open()
+            try {
+                $configReader = [System.IO.StreamReader]::new($configStream, [System.Text.Encoding]::UTF8, $true, 4096, $true)
+                try {
+                    $config = $configReader.ReadToEnd() | ConvertFrom-Json
+                }
+                finally {
+                    $configReader.Dispose()
+                }
+            }
+            finally {
+                $configStream.Dispose()
+            }
+
+            foreach ($section in @('mixins', 'client', 'server')) {
+                $property = $config.PSObject.Properties[$section]
+                if ($null -eq $property) {
+                    continue
+                }
+                foreach ($mixin in @($property.Value)) {
+                    $className = if ([string]::IsNullOrWhiteSpace([string]$config.package)) {
+                        [string]$mixin
+                    }
+                    else {
+                        "$($config.package).$mixin"
+                    }
+                    $classPath = $className.Replace('.', '/') + '.class'
+                    if ($classPath -notin $entries) {
+                        throw "Production mixin config $configName references missing class $classPath"
+                    }
+                }
+            }
+        }
+
         $abiChecks = @(
             @{
                 Entry = 'dev/ryanhcode/sable/physics/ReactionWheelManager.class'
@@ -215,6 +257,11 @@ function Assert-ProductionJar {
                 Entry = 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/hose_pulley/HosePulleyFluidHandlerMixin.class'
                 Forbidden = 'net/neoforged/neoforge/fluids/FluidStack'
                 Message = 'NeoForge FluidStack descriptor entered the Forge hose pulley mixin'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/api/block/propeller/BlockEntityPropeller.class'
+                Required = @('m_58904_', 'm_58899_')
+                Message = 'Propeller API is missing its remapped BlockEntity accessor bridge'
             }
         )
         foreach ($check in $abiChecks) {
@@ -236,8 +283,13 @@ function Assert-ProductionJar {
             finally {
                 $stream.Dispose()
             }
-            if ($classText.Contains($check.Forbidden)) {
+            if ($check.ContainsKey('Forbidden') -and $classText.Contains($check.Forbidden)) {
                 throw $check.Message
+            }
+            foreach ($required in @($check.Required)) {
+                if (-not [string]::IsNullOrEmpty($required) -and -not $classText.Contains($required)) {
+                    throw $check.Message
+                }
             }
         }
     }
