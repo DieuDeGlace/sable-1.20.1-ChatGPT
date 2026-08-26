@@ -73,7 +73,7 @@ public abstract class WalkNodeEvaluatorMixin extends NodeEvaluator {
     @Redirect(method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;blockPosition()Lnet/minecraft/core/BlockPos;"))
     private BlockPos sable$redirectPathTypeMobPosition(final Mob mob) {
-        final SubLevel trackingSubLevel = this.sable$getTrackingSubLevel();
+        final SubLevel trackingSubLevel = Sable.HELPER.getTrackingSubLevel(mob);
         if (trackingSubLevel == null) {
             return mob.blockPosition();
         }
