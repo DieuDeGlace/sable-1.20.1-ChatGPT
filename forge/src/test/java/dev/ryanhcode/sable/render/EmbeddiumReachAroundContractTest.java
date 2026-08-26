@@ -28,5 +28,7 @@ class EmbeddiumReachAroundContractTest {
         assertTrue(dispatcher.contains("sectionRenderDispatcher.uploadAllPendingUploads()"));
         assertTrue(bridge.contains("dispatcher.preRenderChunks(camera)"));
         assertTrue(bridge.contains("subLevel.getRenderData().compileSections"));
+        assertTrue(bridge.contains("@Mixin(targets = \"me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer\", remap = false)"));
+        assertTrue(bridge.contains("renderType.clearRenderState()"));
     }
 }
