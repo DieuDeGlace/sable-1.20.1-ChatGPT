@@ -16,6 +16,15 @@ The target runtime is fixed to:
 Sable uses extensive bytecode modification and should be tested carefully in
 large mod packs. Back up worlds before changing mod versions.
 
+## Known incompatible mods
+
+The following mods are currently incompatible with Sable and should not be
+installed alongside it:
+
+- Radium
+- EntityCulling
+- Chloride
+
 ## Known compatibility constraint: Oculus shader state
 
 This port currently retains an Oculus `ExtendedShader` compatibility bridge
