@@ -502,6 +502,19 @@ tasks.register('mergeSableRefmap') {
             }
         }
 
+        // Storage Drawers is a third-party @Pseudo target, while the wrapped
+        // Vec3 call is a Minecraft method. Mixin's annotation processor cannot
+        // infer that mixed ownership boundary, so require the explicit 1.20.1
+        // SRG selector used by production Forge.
+        def storageDrawersMixin = 'dev/ryanhcode/sable/neoforge/mixin/compatibility/storagedrawers/WorldUtilsMixin'
+        def storageDrawersDistanceSelector = 'Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D'
+        def storageDrawersDistanceMapping = 'Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D'
+        [base.mappings[storageDrawersMixin], base.data.searge[storageDrawersMixin]].each { actual ->
+            if (actual == null || actual[storageDrawersDistanceSelector] != storageDrawersDistanceMapping) {
+                throw new GradleException("Missing or incorrect Storage Drawers SRG mapping for ${storageDrawersMixin}: ${actual == null ? null : actual[storageDrawersDistanceSelector]}")
+            }
+        }
+
         // Dynamic block-face shading is split across the 1.20.1 chunk compiler,
         // flat-model and ambient-occlusion paths. Losing any one selector leaves
         // plot-axis lighting baked into a rotating physical object.

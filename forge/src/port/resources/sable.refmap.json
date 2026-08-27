@@ -16,6 +16,9 @@
       "Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D",
       "updateEntityAfterFallOn": "Lcom/simibubi/create/content/logistics/depot/EjectorBlock;m_5548_(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;)V"
     },
+    "dev/ryanhcode/sable/neoforge/mixin/compatibility/storagedrawers/WorldUtilsMixin": {
+      "Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D"
+    },
     "dev/ryanhcode/sable/mixin/sculk_vibrations/VibrationSystemTickerMixin": {
       "receiveVibration": "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Ticker;m_280174_(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Data;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;Lnet/minecraft/world/level/gameevent/vibrations/VibrationInfo;)Z",
       "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;getPositionSource()Lnet/minecraft/world/level/gameevent/PositionSource;": "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;m_280010_()Lnet/minecraft/world/level/gameevent/PositionSource;",
@@ -888,6 +891,9 @@
         "Lnet/minecraft/world/phys/Vec3;add(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;": "Lnet/minecraft/world/phys/Vec3;m_82549_(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;",
         "Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D",
         "updateEntityAfterFallOn": "Lcom/simibubi/create/content/logistics/depot/EjectorBlock;m_5548_(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;)V"
+      },
+      "dev/ryanhcode/sable/neoforge/mixin/compatibility/storagedrawers/WorldUtilsMixin": {
+        "Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D"
       },
       "dev/ryanhcode/sable/mixin/sculk_vibrations/VibrationSystemTickerMixin": {
         "receiveVibration": "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Ticker;m_280174_(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Data;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;Lnet/minecraft/world/level/gameevent/vibrations/VibrationInfo;)Z",

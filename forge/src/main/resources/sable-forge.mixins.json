@@ -10,7 +10,8 @@
   "plugin": "dev.ryanhcode.sable.plugin.SableMixinPlugin",
   "mixins": [
     "entities_stick_sublevels.effects.LivingEntityMixin",
-    "compatibility.immersiveengineering.TurretBlockEntityMixin"
+    "compatibility.immersiveengineering.TurretBlockEntityMixin",
+    "compatibility.storagedrawers.WorldUtilsMixin"
   ],
   "client": [
     "admitted.ForgeLevelRendererAccessor",
