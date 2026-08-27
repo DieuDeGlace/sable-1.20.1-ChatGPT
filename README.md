@@ -24,6 +24,24 @@ installed alongside it:
 - Radium
 - EntityCulling
 - Chloride
+- Colorwheel when using shader-enabled Flywheel instancing for Sable sub-levels
+
+## Known incompatibility: Colorwheel shader instancing
+
+With the currently pinned Minecraft 1.20.1 rendering stack, Colorwheel 1.2.9
+cannot compile Sable's upstream embedded Flywheel shader variants when a shader
+pack is active. The failed programs report undefined embedded-lighting varyings
+such as `flw_vertexLightingSceneId`, `flw_vertexLightingPos`, and
+`flw_skyLightScale`. As a result, gears, bearing components, and other animated
+Flywheel parts on physical sub-levels can become invisible, and Colorwheel may
+report that the shader pack contains broken shaders.
+
+This warning specifically concerns Colorwheel's shader-enabled instancing path
+for Sable sub-levels; it does not claim that every Colorwheel feature or every
+shader pack is incompatible. Until the embedded shader interface is supported,
+do not rely on Colorwheel instancing with Sable. Flywheel's non-instanced
+fallback can avoid the missing-part symptom at the cost of rendering
+performance.
 
 ## Known compatibility constraint: Oculus shader state
 
