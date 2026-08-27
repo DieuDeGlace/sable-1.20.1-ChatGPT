@@ -190,6 +190,7 @@ function Assert-ProductionJar {
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/immersiveengineering/TurretBlockEntityMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/PostProcessingManagerMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/VeilDeferredRendererMixin.class',
+            'dev/ryanhcode/sable/mixinterface/plot/ServerChunkCacheLifecycleExtension.class',
             'dev/ryanhcode/sable/util/DiagnosticLogLimiter.class',
             'LICENSE.md',
             'THIRD_PARTY_NOTICES.md'
@@ -274,6 +275,23 @@ function Assert-ProductionJar {
                 Entry = 'dev/ryanhcode/sable/util/DiagnosticLogLimiter.class'
                 Required = @('DIAGNOSTIC_LOG_TOTAL_LIMIT', 'DIAGNOSTIC_LOG_PER_PROBE_LIMIT', 'ConcurrentHashMap')
                 Message = 'Production diagnostics are missing the configurable shared probe budget'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/mixin/plot/ServerChunkCacheMixin.class'
+                Required = @(
+                    'ServerChunkCacheLifecycleExtension',
+                    'sable$initializeEmptyChunkAfterLevelCapabilities',
+                    'Sable empty plot chunk requested before ServerLevel capabilities initialized'
+                )
+                Message = 'Plot fallback chunk is not guarded by the post-ServerLevel-capability lifecycle contract'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/mixin/plot/ServerLevelLifecycleMixin.class'
+                Required = @(
+                    'ServerChunkCacheLifecycleExtension',
+                    'sable$initializeEmptyChunkAfterLevelCapabilities'
+                )
+                Message = 'ServerLevel completion does not initialize the plot fallback chunk after Forge capabilities'
             },
             @{
                 Entry = 'dev/ryanhcode/sable/mixin/port/sublevel_render/LevelRendererMixin.class'

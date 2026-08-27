@@ -2,6 +2,7 @@ package dev.ryanhcode.sable.mixin.plot;
 
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
+import dev.ryanhcode.sable.mixinterface.plot.ServerChunkCacheLifecycleExtension;
 import dev.ryanhcode.sable.platform.SablePlatform;
 import dev.ryanhcode.sable.sublevel.storage.SubLevelOccupancySavedData;
 import dev.ryanhcode.sable.sublevel.storage.SubLevelTicketsSavedData;
@@ -28,6 +29,14 @@ public abstract class ServerLevelLifecycleMixin {
     @Inject(method = "<init>", at = @At("TAIL"))
     private void sable$initializeSubLevelContainer(final CallbackInfo ci) {
         final ServerLevel level = (ServerLevel) (Object) this;
+        // Forge 1.20.1 attaches ServerLevel capabilities near the end of this
+        // constructor. Creating a LevelChunk from inside ServerChunkCache's
+        // nested constructor is too early for chunk capabilities that depend
+        // on their owning level. Preserve the upstream fallback chunk, but
+        // initialize it only after the owner level has completed construction.
+        ((ServerChunkCacheLifecycleExtension) level.getChunkSource())
+                .sable$initializeEmptyChunkAfterLevelCapabilities();
+
         if (!SablePlatform.INSTANCE.isWrappedLevel(level)) {
             SubLevelOccupancySavedData.getOrLoad(level);
             SubLevelTicketsSavedData.getOrLoad(level);

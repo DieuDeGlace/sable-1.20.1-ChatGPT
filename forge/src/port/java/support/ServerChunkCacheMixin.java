@@ -1,9 +1,9 @@
 package dev.ryanhcode.sable.mixin.plot;
 
 import com.mojang.datafixers.util.Either;
-import com.mojang.datafixers.DataFixer;
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
+import dev.ryanhcode.sable.mixinterface.plot.ServerChunkCacheLifecycleExtension;
 import dev.ryanhcode.sable.sublevel.plot.PlotChunkHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -11,18 +11,13 @@ import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.TicketType;
-import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.EmptyLevelChunk;
 import net.minecraft.world.level.chunk.LightChunk;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-import net.minecraft.world.level.storage.LevelStorageSource;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,34 +29,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /** Routes 1.20.1 server chunk lookups and block notifications into Sable plots. */
 @Mixin(ServerChunkCache.class)
-public abstract class ServerChunkCacheMixin {
+public abstract class ServerChunkCacheMixin implements ServerChunkCacheLifecycleExtension {
     @Unique private static final Logger sable$LOGGER = LogUtils.getLogger();
     @Shadow @Final ServerLevel level;
     @Unique private EmptyLevelChunk sable$emptyChunk;
     @Unique private boolean sable$loggedEmptyFallback;
 
-    @Inject(method = "<init>", at = @At("RETURN"))
-    private void sable$init(final ServerLevel serverLevel,
-                            final LevelStorageSource.LevelStorageAccess levelStorageAccess,
-                            final DataFixer dataFixer,
-                            final StructureTemplateManager structureTemplateManager,
-                            final Executor executor,
-                            final ChunkGenerator chunkGenerator,
-                            final int viewDistance,
-                            final int simulationDistance,
-                            final boolean sync,
-                            final ChunkProgressListener chunkProgressListener,
-                            final ChunkStatusUpdateListener chunkStatusUpdateListener,
-                            final Supplier<?> dimensionDataStorage,
-                            final CallbackInfo ci) {
-        this.sable$emptyChunk = new EmptyLevelChunk(serverLevel, new ChunkPos(0, 0),
-                serverLevel.registryAccess().registryOrThrow(Registries.BIOME)
+    @Override
+    public void sable$initializeEmptyChunkAfterLevelCapabilities() {
+        if (this.sable$emptyChunk != null) {
+            return;
+        }
+
+        this.sable$emptyChunk = new EmptyLevelChunk(this.level, new ChunkPos(0, 0),
+                this.level.registryAccess().registryOrThrow(Registries.BIOME)
                         .getHolderOrThrow(Biomes.PLAINS));
     }
 
@@ -93,6 +78,9 @@ public abstract class ServerChunkCacheMixin {
             if (chunk != null) {
                 cir.setReturnValue(CompletableFuture.completedFuture(Either.left(chunk)));
             } else {
+                if (this.sable$emptyChunk == null) {
+                    throw new IllegalStateException("Sable empty plot chunk requested before ServerLevel capabilities initialized");
+                }
                 if (!this.sable$loggedEmptyFallback) {
                     this.sable$loggedEmptyFallback = true;
                     dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-PLOT-EMPTY-FALLBACK: routed unallocated plot-grid neighbor "

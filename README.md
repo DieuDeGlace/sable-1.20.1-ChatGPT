@@ -16,6 +16,23 @@ The target runtime is fixed to:
 Sable uses extensive bytecode modification and should be tested carefully in
 large mod packs. Back up worlds before changing mod versions.
 
+## Known compatibility constraint: Oculus shader state
+
+This port currently retains an Oculus `ExtendedShader` compatibility bridge
+that restores the expected OpenGL shader program when the Java-side shader
+cache and the active program diverge. It was introduced to address missing
+physical-world blocks, Create/Flywheel moving parts, and first-person rendering
+after shader-state transitions.
+
+This bridge is required for the currently pinned runtime. In a controlled
+rollback test, removing it made gears and other moving parts invisible both
+with and without a shader pack, and with Flywheel instancing both enabled and
+disabled. The bridge is nevertheless intrusive because it runs at a general
+Oculus shader boundary; shader reload compatibility and synchronous OpenGL
+state-query cost remain known risks. Do not remove or redesign it without an
+isolated A/B test covering shader packs on/off, Flywheel instancing on/off,
+shader reloads, world changes, and OpenGL error logs.
+
 ## Build for testing
 
 To try the port, clone the repository and run `build.cmd test` on Windows. The
