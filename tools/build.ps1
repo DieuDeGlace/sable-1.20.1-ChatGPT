@@ -276,6 +276,12 @@ function Assert-ProductionJar {
                 Message = 'Production diagnostics are missing the configurable shared probe budget'
             },
             @{
+                Entry = 'dev/ryanhcode/sable/mixin/compatibility/iris/ExtendedShaderMixin.class'
+                Required = @('sable$refreshModelMatrices', 'modelViewInverse', 'normalMatrix')
+                Forbidden = @('m_173363_', 'glUseProgram', 'GL_CURRENT_PROGRAM', 'glIsProgram')
+                Message = 'Oculus compatibility must preserve the upstream matrix bridge without globally polling or forcing GL programs'
+            },
+            @{
                 Entry = 'dev/ryanhcode/sable/mixin/port/sublevel_render/LevelRendererMixin.class'
                 Required = @(
                     'sable$renderSubLevelBlockEntities',
