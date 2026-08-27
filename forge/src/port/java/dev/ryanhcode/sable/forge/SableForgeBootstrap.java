@@ -169,6 +169,8 @@ public final class SableForgeBootstrap {
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, SableServerConfig.SPEC);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             MinecraftForge.EVENT_BUS.addListener(SableForgeClientFreezeBridge::onClientTick);
+            MinecraftForge.EVENT_BUS.addListener(
+                    dev.ryanhcode.sable.forge.client.SableFlywheelDebugCommands::register);
             SableClient.init();
             ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, SableClientConfig.SPEC);
             modEventBus.<ModConfigEvent.Loading>addListener(event -> {

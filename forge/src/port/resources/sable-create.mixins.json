@@ -148,6 +148,7 @@
     "compatibility.create.trains.CarriageContraptionVisualMixin",
     "compatibility.create.wand_of_symmetry.SymmetryHandlerMixin",
     "compatibility.flywheel.AbstractBlockEntityVisualMixin",
+    "compatibility.flywheel.BackendManagerDebugOverrideMixin",
     "compatibility.flywheel.BlockEntityStorageMixin",
     "compatibility.flywheel.DrawManagerMixin",
     "compatibility.flywheel.EmbeddedEnvironmentMixin",
