@@ -188,10 +188,12 @@ function Assert-ProductionJar {
             'assets/sable/flywheel/light/smooth.glsl',
             'assets/sable/flywheel/light/smooth_when_embedded.glsl',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/immersiveengineering/TurretBlockEntityMixin.class',
+            'dev/ryanhcode/sable/neoforge/mixin/compatibility/legendarysurvivaloverhaul/LegendarySurvivalOverhaulWorldUtilMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/PostProcessingManagerMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/VeilDeferredRendererMixin.class',
             'dev/ryanhcode/sable/mixinterface/plot/ServerChunkCacheLifecycleExtension.class',
-            'dev/ryanhcode/sable/util/DiagnosticLogLimiter.class',
+            'dev/ryanhcode/sable/compatibility/SableIrisProgramRecovery.class',
+            'dev/ryanhcode/sable/forge/client/SableIrisProgramRecoveryCommands.class',
             'LICENSE.md',
             'THIRD_PARTY_NOTICES.md'
         )) {
@@ -201,10 +203,37 @@ function Assert-ProductionJar {
         }
         $forbidden = @($entries | Where-Object {
             $_ -match '(^|/)(validation|evidence|construction|logs?)(/|$)' -or
-            $_ -match '(^|/)SableForge.*(Validation|Probe|Telemetry)[^/]*\.class$'
+            $_ -match '(^|/)SableForge.*(Validation|Probe|Telemetry)[^/]*\.class$' -or
+            $_ -eq 'dev/ryanhcode/sable/util/DiagnosticLogLimiter.class' -or
+            $_ -match '^dev/ryanhcode/sable/neoforge/(diagnostic|mixin/diagnostic)/' -or
+            $_ -match '^dev/ryanhcode/sable/neoforge/compatibility/flywheel/SableFlywheel(Model)?Diagnostics\.class$' -or
+            $_ -match '^dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel/(DrawManagerMixin|InstancedDrawAccessor|InstancedDrawManagerMixin|ModelsMixin)\.class$' -or
+            $_ -eq 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/contraptions/ContraptionEntityRendererMixin.class'
         })
         if ($forbidden.Count -gt 0) {
             throw "Development-only content entered the production JAR: $($forbidden -join ', ')"
+        }
+
+        foreach ($classEntry in @($archive.Entries | Where-Object { $_.FullName -like '*.class' })) {
+            $classStream = $classEntry.Open()
+            try {
+                $classMemory = [System.IO.MemoryStream]::new()
+                try {
+                    $classStream.CopyTo($classMemory)
+                    $classText = [System.Text.Encoding]::GetEncoding(28591).GetString($classMemory.ToArray())
+                }
+                finally {
+                    $classMemory.Dispose()
+                }
+            }
+            finally {
+                $classStream.Dispose()
+            }
+            if ($classText.Contains('DiagnosticLogLimiter') -or
+                    $classText.Contains('GlProgramStateTrace') -or
+                    $classText.Contains('SABLE-')) {
+                throw "Production diagnostic marker entered $($classEntry.FullName)"
+            }
         }
 
         # Mixin configuration is executable production metadata. Check every
@@ -251,6 +280,17 @@ function Assert-ProductionJar {
 
         $abiChecks = @(
             @{
+                Entry = 'dev/ryanhcode/sable/neoforge/mixin/compatibility/legendarysurvivaloverhaul/LegendarySurvivalOverhaulWorldUtilMixin.class'
+                Required = @(
+                    'sfiomn.legendarysurvivaloverhaul.util.WorldUtil',
+                    'getEntityLookedAt',
+                    'distanceSquaredWithSubLevels',
+                    'java/lang/Math',
+                    'sqrt'
+                )
+                Message = 'Legendary Survival Overhaul looked-at entity ray is missing its coordinate-frame distance bridge'
+            },
+            @{
                 Entry = 'dev/ryanhcode/sable/physics/ReactionWheelManager.class'
                 Forbidden = 'm_58900_'
                 Message = 'Reaction wheel interface call was remapped as a Minecraft BlockEntity method'
@@ -272,9 +312,20 @@ function Assert-ProductionJar {
                 Message = 'Hanging-entity migration is not using the direction-agnostic 1.21 support-box backport'
             },
             @{
-                Entry = 'dev/ryanhcode/sable/util/DiagnosticLogLimiter.class'
-                Required = @('DIAGNOSTIC_LOG_TOTAL_LIMIT', 'DIAGNOSTIC_LOG_PER_PROBE_LIMIT', 'ConcurrentHashMap')
-                Message = 'Production diagnostics are missing the configurable shared probe budget'
+                Entry = 'dev/ryanhcode/sable/mixin/compatibility/iris/ExtendedShaderMixin.class'
+                Required = @('SableIrisProgramRecovery', 'isEnabled', 'glGetInteger', 'm_85578_')
+                Forbidden = @('GlProgramStateTrace', 'glIsProgram', 'SABLE-IRIS-PROGRAM-CACHE-RECOVERY')
+                Message = 'Oculus program recovery is not isolated behind the low-cost A/B control or still contains production diagnostics'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/compatibility/SableIrisProgramRecovery.class'
+                Required = @('CONFIGURED', 'isEnabled', 'configuredEnabled', 'setMode')
+                Message = 'Oculus program recovery A/B controller is incomplete'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/compatibility/SableIrisProgramRecovery$Mode.class'
+                Required = @('CONFIGURED', 'ENABLED', 'DISABLED')
+                Message = 'Oculus program recovery A/B modes are incomplete'
             },
             @{
                 Entry = 'dev/ryanhcode/sable/mixin/plot/ServerChunkCacheMixin.class'

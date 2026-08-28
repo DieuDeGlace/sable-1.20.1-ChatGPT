@@ -2,7 +2,6 @@ package dev.ryanhcode.sable.mixin.port.sublevel_render.impl.vanilla;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.api.sublevel.ClientSubLevelContainer;
 import dev.ryanhcode.sable.mixinterface.plot.SubLevelContainerHolder;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
@@ -17,15 +16,12 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.chunk.RenderRegionCache;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Minecraft 1.20.1 adapter for upstream Sable's vanilla section-render hooks.
@@ -34,9 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Mixin(value = LevelRenderer.class, priority = 1002)
 public abstract class LevelRendererMixin {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
-    private static final AtomicBoolean LOGGED_NATIVE_RENDER = new AtomicBoolean();
 
     @Shadow
     private @Nullable ClientLevel level;
@@ -73,9 +66,6 @@ public abstract class LevelRendererMixin {
 
         final Iterable<ClientSubLevel> sublevels = ((ClientSubLevelContainer)
                 ((SubLevelContainerHolder) this.level).sable$getPlotContainer()).getAllSubLevels();
-        if (LOGGED_NATIVE_RENDER.compareAndSet(false, true)) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-NATIVE-CHUNK-RENDER] beforeShaderClear=true shader={}", shader.getName());
-        }
         SubLevelRenderDispatcher.get().renderSectionLayer(sublevels, renderType, shader,
                 cameraX, cameraY, cameraZ, new Matrix4f(poseStack.last().pose()), projection,
                 this.minecraft.getPartialTick());

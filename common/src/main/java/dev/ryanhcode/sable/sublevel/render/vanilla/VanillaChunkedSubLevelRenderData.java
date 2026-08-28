@@ -3,7 +3,6 @@ package dev.ryanhcode.sable.sublevel.render.vanilla;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexBuffer;
-import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.companion.math.BoundingBox3i;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
@@ -29,24 +28,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.joml.*;
-import org.lwjgl.opengl.GL20C;
-import org.lwjgl.opengl.GL30C;
-import org.slf4j.Logger;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A renderer and view area for a {@link dev.ryanhcode.sable.sublevel.SubLevel}.
  */
 public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
-    private static final AtomicBoolean LOGGED_SYNC_UPLOAD_DRAIN = new AtomicBoolean();
-    private static final int TERRAIN_DRAW_TRACE_LIMIT = 512;
-    private static final Set<String> TRACED_TERRAIN_DRAW_STATES = new HashSet<>();
     private static final Matrix4f TRANSFORM = new Matrix4f();
     private static final Matrix4f MODEL_MATRIX = new Matrix4f();
 
@@ -264,10 +253,6 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             profiler.push("sublevel_upload_sync_builds");
             this.sectionRenderDispatcher.uploadAllPendingUploads();
             profiler.pop();
-            if (LOGGED_SYNC_UPLOAD_DRAIN.compareAndSet(false, true)) {
-                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-CHUNK-SYNC-UPLOAD-DRAIN: synchronousBuilds={}, thread={}",
-                        synchronousBuilds, Thread.currentThread().getName());
-            }
         }
         this.dirtyRenderSections.clear();
     }
@@ -374,13 +359,6 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
         // TODO: sorting
         final Uniform chunkOffsetUniform = shader.CHUNK_OFFSET;
 
-        final int shaderProgram = shader.getId();
-        final int activeProgram = GL20C.glGetInteger(GL20C.GL_CURRENT_PROGRAM);
-        final boolean shaderProgramValid = GL20C.glIsProgram(shaderProgram);
-        final int drawFramebuffer = GL30C.glGetInteger(GL30C.GL_DRAW_FRAMEBUFFER_BINDING);
-        final int readFramebuffer = GL30C.glGetInteger(GL30C.GL_READ_FRAMEBUFFER_BINDING);
-        final int mainFramebuffer = Minecraft.getInstance().getMainRenderTarget().frameBufferId;
-
         int draws = 0;
         for (final ChunkRenderDispatcher.RenderChunk renderSection : this.allRenderSections) {
             if (renderSection.getCompiledChunk().isEmpty(layer)) {
@@ -398,27 +376,6 @@ public class VanillaChunkedSubLevelRenderData implements SubLevelRenderData {
             buffer.bind();
             buffer.draw();
             draws++;
-        }
-
-        final int shaderIdentity = System.identityHashCode(shader);
-        final int layerIdentity = System.identityHashCode(layer);
-        final String traceKey = this.subLevel.getUniqueId() + ":" + shaderIdentity + ":" + layerIdentity
-                + ":" + shaderProgram + ":" + activeProgram + ":" + drawFramebuffer
-                + ":" + readFramebuffer + ":" + mainFramebuffer + ":" + draws
-                + ":" + this.allRenderSections.size();
-        boolean writeTrace = false;
-        synchronized (TRACED_TERRAIN_DRAW_STATES) {
-            if (TRACED_TERRAIN_DRAW_STATES.size() < TERRAIN_DRAW_TRACE_LIMIT) {
-                writeTrace = TRACED_TERRAIN_DRAW_STATES.add(traceKey);
-            }
-        }
-        if (writeTrace) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-SUBLEVEL-TERRAIN-DRAW: subLevel={}, layer={}, layerIdentity={}, shader={}, "
-                            + "shaderIdentity={}, shaderProgram={}, shaderProgramValid={}, activeProgram={}, "
-                            + "drawFramebuffer={}, readFramebuffer={}, mainFramebuffer={}, draws={}, sections={}",
-                    this.subLevel.getUniqueId(), layer, layerIdentity, shader.getName(), shaderIdentity,
-                    shaderProgram, shaderProgramValid, activeProgram, drawFramebuffer, readFramebuffer,
-                    mainFramebuffer, draws, this.allRenderSections.size());
         }
 
         if (chunkOffsetUniform != null) {

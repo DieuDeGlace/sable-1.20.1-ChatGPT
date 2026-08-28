@@ -4,7 +4,6 @@ import com.mojang.blaze3d.shaders.FogShape;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
 import dev.ryanhcode.sable.index.SableTags;
@@ -34,20 +33,14 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
-import org.slf4j.Logger;
 
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
-    private static final Set<String> LOGGED_BLOCK_ENTITY_PATHS = ConcurrentHashMap.newKeySet();
-    private static final Set<String> LOGGED_DYNAMIC_SHADE_SHADERS = ConcurrentHashMap.newKeySet();
 
     private final Set<RenderType> singleBlockLayers;
 
@@ -63,14 +56,6 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
             sableEnableNormalLighting.set(enableDynamicShading ? 1.0F : 0.0F);
             if (upload) {
                 sableEnableNormalLighting.upload();
-            }
-        }
-
-        if (onSubLevel) {
-            final String shaderPath = shader.getName() + ":" + (sableEnableNormalLighting != null);
-            if (LOGGED_DYNAMIC_SHADE_SHADERS.add(shaderPath)) {
-                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-DYNAMIC-SHADE-SHADER] shader={} enabled={} uniformPresent={}",
-                        shader.getName(), enableDynamicShading, sableEnableNormalLighting != null);
             }
         }
 
@@ -214,19 +199,14 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
                 final BufferBuilder consumer = Tesselator.getInstance().getBuilder();
                 consumer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
 
-                SableDynamicDirectionalShading.beginLightTrace("single:" + layer);
-                try {
-                    for (final ClientSubLevel sublevel : sublevels) {
-                        final SubLevelRenderData data = sublevel.getRenderData();
+                for (final ClientSubLevel sublevel : sublevels) {
+                    final SubLevelRenderData data = sublevel.getRenderData();
 
-                        if (!(data instanceof final VanillaSingleSubLevelRenderData singleRenderData)) {
-                            continue;
-                        }
-
-                        singleRenderData.renderSingleBlock(layer, consumer, modelView, cameraX, cameraY, cameraZ);
+                    if (!(data instanceof final VanillaSingleSubLevelRenderData singleRenderData)) {
+                        continue;
                     }
-                } finally {
-                    SableDynamicDirectionalShading.endLightTrace();
+
+                    singleRenderData.renderSingleBlock(layer, consumer, modelView, cameraX, cameraY, cameraZ);
                 }
 
                 final BufferBuilder.RenderedBuffer renderedBuffer = consumer.endOrDiscardIfEmpty();
@@ -303,38 +283,18 @@ public class VanillaSubLevelRenderDispatcher implements SubLevelRenderDispatcher
                 for (final ChunkRenderDispatcher.RenderChunk renderSection : chunkedRenderData.allRenderSections()) {
                     final List<BlockEntity> blockEntities = renderSection.getCompiledChunk().getRenderableBlockEntities();
                     if (!blockEntities.isEmpty()) {
-                        for (final BlockEntity blockEntity : blockEntities) {
-                            logBlockEntityRenderPath(sublevel, blockEntity, cameraPosition, localCamera, renderPose);
-                        }
                         blockEntityRenderer.renderBlockEntities(blockEntities, matrices, partialTick, -chunkOffset.x, -chunkOffset.y, -chunkOffset.z);
                     }
                 }
             } else if (data instanceof final VanillaSingleSubLevelRenderData singleRenderData) {
                 final BlockEntity renderBlockEntity = singleRenderData.getRenderBlockEntity();
                 if (renderBlockEntity != null) {
-                    logBlockEntityRenderPath(sublevel, renderBlockEntity, cameraPosition, localCamera, renderPose);
                     blockEntityRenderer.renderSingleBE(renderBlockEntity, matrices, partialTick, -chunkOffset.x, -chunkOffset.y, -chunkOffset.z);
                 }
             }
         }
 
         dispatcher.sable$setCameraPosition(null);
-    }
-
-    private static void logBlockEntityRenderPath(final ClientSubLevel sublevel,
-                                                  final BlockEntity blockEntity,
-                                                  final Vec3 camera,
-                                                  final Vec3 localCamera,
-                                                  final Pose3dc renderPose) {
-        final String diagnosticKey = sublevel.getUniqueId() + ":" + blockEntity.getType();
-        if (LOGGED_BLOCK_ENTITY_PATHS.size() >= 64 || !LOGGED_BLOCK_ENTITY_PATHS.add(diagnosticKey)) {
-            return;
-        }
-        final Vec3 physicalBlockOrigin = renderPose.transformPosition(Vec3.atLowerCornerOf(blockEntity.getBlockPos()));
-        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-BE-RENDER: sub-level={}, type={}, local={}, physical={}, camera={}, "
-                        + "localCamera={}, precision-safe=true",
-                sublevel.getUniqueId(), blockEntity.getType(), blockEntity.getBlockPos(), physicalBlockOrigin,
-                camera, localCamera);
     }
 
     @Override

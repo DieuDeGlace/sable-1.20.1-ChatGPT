@@ -46,14 +46,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Mixin(AbstractContraptionEntity.class)
 public abstract class AbstractContraptionEntityMixin extends Entity implements KinematicContraption {
-
-    @Unique
-    private static final Set<java.util.UUID> SABLE$CLIENT_TICK_LOGGED = ConcurrentHashMap.newKeySet();
 
     @Unique
     private final Vector3d sable$cachedGlobalPosition = new Vector3d();
@@ -103,9 +98,6 @@ public abstract class AbstractContraptionEntityMixin extends Entity implements K
     @Inject(method = {"tick", "m_8119_"}, at = @At(value = "INVOKE", target = "Ljava/util/Map;entrySet()Ljava/util/Set;", remap = false))
     private void sable$contraptionInitialize(final CallbackInfo ci) {
         if (!this.sable$initialized && this.level() instanceof final ServerLevel serverLevel) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-INIT: uuid={}, entityId={}, type={}, position={}, blocks={}",
-                    this.getUUID(), this.getId(), this.getType(), this.position(),
-                    this.contraption == null ? -1 : this.contraption.getBlocks().size());
             this.sable$buildProperties();
 
             if (this.sable$massTracker == null || this.sable$massTracker.getCenterOfMass() == null) {
@@ -219,27 +211,10 @@ public abstract class AbstractContraptionEntityMixin extends Entity implements K
 
     @Inject(method = "remove", at = @At("HEAD"))
     private void sable$removeFromPhysics(final RemovalReason removalReason, final CallbackInfo ci) {
-        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-REMOVE: uuid={}, entityId={}, type={}, reason={}, position={}, blocks={}, initialized={}",
-                this.getUUID(), this.getId(), this.getType(), removalReason, this.position(),
-                this.contraption == null ? -1 : this.contraption.getBlocks().size(), this.sable$initialized);
         if (this.level() instanceof final ServerLevel serverLevel) {
             this.sable$removeFromPlot();
             this.sable$removeFromPipeline(serverLevel);
         }
-    }
-
-    @Inject(method = {"tick", "m_8119_"}, at = @At("HEAD"))
-    private void sable$traceClientContraption(final CallbackInfo ci) {
-        if (!this.level().isClientSide || !SABLE$CLIENT_TICK_LOGGED.add(this.getUUID())) {
-            return;
-        }
-
-        final SubLevel subLevel = Sable.HELPER.getContaining(this);
-        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-CREATE-CONTRAPTION-CLIENT-TICK: uuid={}, entityId={}, type={}, "
-                        + "position={}, chunk={}, subLevel={}, blocks={}, removed={}",
-                this.getUUID(), this.getId(), this.getType(), this.position(), this.chunkPosition(),
-                subLevel == null ? "none" : subLevel.getUniqueId(),
-                this.contraption == null ? -1 : this.contraption.getBlocks().size(), this.isRemoved());
     }
 
     @Unique

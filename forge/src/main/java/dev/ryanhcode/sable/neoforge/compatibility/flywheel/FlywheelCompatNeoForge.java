@@ -1,6 +1,5 @@
 package dev.ryanhcode.sable.neoforge.compatibility.flywheel;
 
-import dev.ryanhcode.sable.Sable;
 import dev.engine_room.flywheel.lib.visualization.VisualizationHelper;
 import dev.ryanhcode.sable.api.sublevel.ClientSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
@@ -66,7 +65,6 @@ public class FlywheelCompatNeoForge {
         // recreates them when shaders are disabled. Existing entities do not emit a new
         // join-level event during that rebuild, so restore every current sub-level render
         // state before Flywheel's beginFrame task creates their replacement visuals.
-        int recovered = 0;
         for (final ClientSubLevel subLevel : container.getAllSubLevels()) {
             final ChunkPos plotPos = subLevel.getPlot().plotPos;
             final long plotCoord = ChunkPos.asLong(
@@ -79,12 +77,6 @@ public class FlywheelCompatNeoForge {
             final SubLevelFlwRenderState renderState = new SubLevelFlwRenderState();
             updateEntry(container, subLevel, renderState, partialTicks);
             RENDER_POSES.put(plotCoord, renderState);
-            recovered++;
-        }
-
-        if (recovered > 0) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-FLYWHEEL-RENDER-STATE-RECOVERY: recovered={}, subLevels={}",
-                    recovered, container.getAllSubLevels().size());
         }
     }
 

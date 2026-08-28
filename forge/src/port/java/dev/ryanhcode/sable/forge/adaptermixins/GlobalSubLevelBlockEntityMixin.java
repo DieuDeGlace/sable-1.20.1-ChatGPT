@@ -1,7 +1,6 @@
 package dev.ryanhcode.sable.neoforge.mixin.admitted;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.companion.math.BoundingBox3d;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
@@ -19,15 +18,11 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
-
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Forge 1.20.1 adaptation of Sable's global block-entity transform path.
@@ -38,9 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 // Apply afterwards so its implicit local-variable discriminator sees vanilla's table.
 @Mixin(value = LevelRenderer.class, priority = 900)
 public abstract class GlobalSubLevelBlockEntityMixin {
-    @Unique private static final Logger sable$LOGGER = LogUtils.getLogger();
-    @Unique private static final Set<String> sable$loggedRenderPaths = ConcurrentHashMap.newKeySet();
-    @Unique private static final Set<String> sable$loggedCullPaths = ConcurrentHashMap.newKeySet();
     @Unique private final Matrix4f sable$baseWorldPose = new Matrix4f();
     @Unique private final Matrix3f sable$baseWorldNormal = new Matrix3f();
 
@@ -95,13 +87,7 @@ public abstract class GlobalSubLevelBlockEntityMixin {
         final AABB physicalBounds = new BoundingBox3d(renderBounds)
                 .transform(subLevel.logicalPose())
                 .toMojang();
-        final boolean visible = frustum.isVisible(physicalBounds);
-        final String diagnosticKey = subLevel.getUniqueId() + ":" + renderBounds;
-        if (sable$loggedCullPaths.size() < 64 && sable$loggedCullPaths.add(diagnosticKey)) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-BE-GLOBAL-CULL: sub-level={}, plotBounds={}, physicalBounds={}, visible={}",
-                    subLevel.getUniqueId(), renderBounds, physicalBounds, visible);
-        }
-        return visible;
+        return frustum.isVisible(physicalBounds);
     }
 
     @Redirect(
@@ -146,15 +132,6 @@ public abstract class GlobalSubLevelBlockEntityMixin {
                     blockPos.getZ() - renderPose.rotationPoint().z());
             extension.sable$setCameraPosition(localCamera);
             dispatcher.render(blockEntity, partialTick, physicalPoseStack, bufferSource);
-
-            final String diagnosticKey = subLevel.getUniqueId() + ":" + blockEntity.getType();
-            if (sable$loggedRenderPaths.size() < 64 && sable$loggedRenderPaths.add(diagnosticKey)) {
-                final Vec3 physicalBlockOrigin = renderPose.transformPosition(Vec3.atLowerCornerOf(blockPos));
-                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-BE-GLOBAL-RENDER: sub-level={}, type={}, local={}, physical={}, "
-                                + "camera={}, localCamera={}, precision-safe=true",
-                        subLevel.getUniqueId(), blockEntity.getType(), blockPos, physicalBlockOrigin,
-                        camera, localCamera);
-            }
         } finally {
             extension.sable$setCameraPosition(null);
         }

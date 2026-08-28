@@ -24,8 +24,6 @@ installed alongside it:
 - Radium
 - EntityCulling
 - Chloride
-- Immersive Optimization
-- Accelerated Rendering
 - Colorwheel when using shader-enabled Flywheel instancing for Sable sub-levels
 
 ## Known incompatibility: Colorwheel shader instancing

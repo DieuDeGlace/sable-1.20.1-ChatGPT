@@ -1,21 +1,18 @@
 package dev.ryanhcode.sable;
 
-import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.api.sublevel.ClientSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
+import dev.ryanhcode.sable.compatibility.SableIrisProgramRecovery;
 import dev.ryanhcode.sable.render.dynamic_shade.SableDynamicDirectionalShading;
 import dev.ryanhcode.sable.sublevel.render.SubLevelRenderer;
 import foundry.veil.Veil;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.jetbrains.annotations.ApiStatus;
-import org.slf4j.Logger;
 
 import java.util.Arrays;
 
 public final class SableClientConfig {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final ForgeConfigSpec SPEC;
 
@@ -23,6 +20,7 @@ public final class SableClientConfig {
     public static final ForgeConfigSpec.BooleanValue SUB_LEVEL_DYNAMIC_SHADING;
     public static final ForgeConfigSpec.BooleanValue SUB_LEVEL_WATER_OCCLUSION;
     public static final ForgeConfigSpec.BooleanValue SUB_LEVEL_SKYLIGHT_SHADOWS;
+    public static final ForgeConfigSpec.BooleanValue IRIS_PROGRAM_CACHE_RECOVERY;
     public static final ForgeConfigSpec.BooleanValue DEBUG_DRAW_LOADED_CHUNKS;
     public static final ForgeConfigSpec.DoubleValue INTERPOLATION_DELAY;
     public static final ForgeConfigSpec.EnumValue<SubLevelRenderer.SelectedRenderer> SELECTED_RENDERER;
@@ -41,6 +39,10 @@ public final class SableClientConfig {
         SUB_LEVEL_SKYLIGHT_SHADOWS = builder
                 .comment("Whether sub-levels should cast a shadow on the world")
                 .define("sub_level_skylight_shadows", false);
+        IRIS_PROGRAM_CACHE_RECOVERY = builder
+                .comment("Rebind the actual OpenGL program before Oculus ExtendedShader uploads uniforms. "
+                        + "Enabled by default for compatibility; use /sable_iris_program_recovery for session-only A/B testing.")
+                .define("iris_program_cache_recovery", true);
         DEBUG_DRAW_LOADED_CHUNKS = builder
                 .comment("Whether to draw loaded chunks on the client in the chunk debug renderer")
                 .define("debug_draw_loaded_chunks", Veil.platform().isDevelopmentEnvironment());
@@ -67,8 +69,7 @@ public final class SableClientConfig {
         final boolean requestedDynamicShading = SUB_LEVEL_DYNAMIC_SHADING.get();
         final boolean shadingChanged = SableDynamicDirectionalShading.isEnabled() != requestedDynamicShading;
         SableDynamicDirectionalShading.setIsEnabled(requestedDynamicShading);
-        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-DYNAMIC-SHADE-CONFIG] enabled={} changed={} notify={}",
-                requestedDynamicShading, shadingChanged, notify);
+        SableIrisProgramRecovery.setConfiguredEnabled(IRIS_PROGRAM_CACHE_RECOVERY.get());
 
         Minecraft.getInstance().execute(() -> {
             SubLevelRenderer.setImpl(SableClientConfig.SELECTED_RENDERER.get());
@@ -80,8 +81,6 @@ public final class SableClientConfig {
                     ? null : SubLevelContainer.getContainer(Minecraft.getInstance().level);
             if (container != null) {
                 container.getAllSubLevels().forEach(subLevel -> subLevel.getRenderData().rebuild());
-                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "[SABLE-DYNAMIC-SHADE-REBUILD] rebuilt {} loaded sub-level renderers",
-                        container.getAllSubLevels().size());
             }
         });
     }

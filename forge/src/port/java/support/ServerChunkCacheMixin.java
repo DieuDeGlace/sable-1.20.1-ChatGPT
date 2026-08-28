@@ -1,7 +1,6 @@
 package dev.ryanhcode.sable.mixin.plot;
 
 import com.mojang.datafixers.util.Either;
-import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.mixinterface.plot.ServerChunkCacheLifecycleExtension;
 import dev.ryanhcode.sable.sublevel.plot.PlotChunkHolder;
@@ -18,7 +17,6 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.EmptyLevelChunk;
 import net.minecraft.world.level.chunk.LightChunk;
 import net.minecraft.world.level.chunk.LevelChunk;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,10 +32,8 @@ import java.util.function.Consumer;
 /** Routes 1.20.1 server chunk lookups and block notifications into Sable plots. */
 @Mixin(ServerChunkCache.class)
 public abstract class ServerChunkCacheMixin implements ServerChunkCacheLifecycleExtension {
-    @Unique private static final Logger sable$LOGGER = LogUtils.getLogger();
     @Shadow @Final ServerLevel level;
     @Unique private EmptyLevelChunk sable$emptyChunk;
-    @Unique private boolean sable$loggedEmptyFallback;
 
     @Override
     public void sable$initializeEmptyChunkAfterLevelCapabilities() {
@@ -80,12 +76,6 @@ public abstract class ServerChunkCacheMixin implements ServerChunkCacheLifecycle
             } else {
                 if (this.sable$emptyChunk == null) {
                     throw new IllegalStateException("Sable empty plot chunk requested before ServerLevel capabilities initialized");
-                }
-                if (!this.sable$loggedEmptyFallback) {
-                    this.sable$loggedEmptyFallback = true;
-                    dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(sable$LOGGER, "SABLE-PLOT-EMPTY-FALLBACK: routed unallocated plot-grid neighbor "
-                            + "({}, {}) to EmptyLevelChunk in {}; collision/raycast queries may safely continue",
-                            x, z, this.level.dimension().location());
                 }
                 cir.setReturnValue(CompletableFuture.completedFuture(Either.left(this.sable$emptyChunk)));
             }

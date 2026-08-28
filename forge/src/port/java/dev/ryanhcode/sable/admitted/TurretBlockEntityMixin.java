@@ -20,8 +20,6 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 /**
  * Keeps Immersive Engineering turret target calculations in the coordinate
  * frame of the sub-level containing the turret.
@@ -29,9 +27,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Pseudo
 @Mixin(targets = "blusunrize.immersiveengineering.common.blocks.metal.TurretBlockEntity")
 public abstract class TurretBlockEntityMixin {
-    @Unique
-    private static final AtomicBoolean SABLE$LOGGED_ACTIVE = new AtomicBoolean();
-
     @ModifyReturnValue(method = "getTargetVector", at = @At("RETURN"), remap = false)
     private Vec3 sable$targetInTurretFrame(final Vec3 globalTarget) {
         final Pose3dc pose = this.sable$getTurretFramePose();
@@ -39,7 +34,6 @@ public abstract class TurretBlockEntityMixin {
             return globalTarget;
         }
 
-        this.sable$logActive();
         return pose.transformPositionInverse(globalTarget);
     }
 
@@ -102,10 +96,4 @@ public abstract class TurretBlockEntityMixin {
         return subLevel.logicalPose();
     }
 
-    @Unique
-    private void sable$logActive() {
-        if (SABLE$LOGGED_ACTIVE.compareAndSet(false, true)) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-IE-TURRET-FRAME: local target, distance and obstruction coordinates active");
-        }
-    }
 }

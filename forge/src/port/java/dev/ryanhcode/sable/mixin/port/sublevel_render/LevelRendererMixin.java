@@ -11,7 +11,6 @@ import dev.ryanhcode.sable.mixinterface.plot.SubLevelContainerHolder;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.render.dispatcher.SubLevelRenderDispatcher;
 import dev.ryanhcode.sable.sublevel.render.dispatcher.VanillaSubLevelRenderDispatcher;
-import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -27,7 +26,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Final;
@@ -40,11 +38,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /** Minecraft 1.20.1 signature adapter for the upstream render-level hooks. */
 // Oculus 1.8.0 applies its entity-list local-variable mixin at priority 999.
@@ -52,11 +47,6 @@ import java.util.concurrent.ConcurrentHashMap;
 // Oculus requires while retaining Sable's upstream render stage.
 @Mixin(value = LevelRenderer.class, priority = 900)
 public class LevelRendererMixin {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
-    private static final AtomicBoolean LOGGED_NATIVE_SINGLE_RENDER = new AtomicBoolean();
-    private static final AtomicBoolean LOGGED_NATIVE_BLOCK_ENTITY_RENDER = new AtomicBoolean();
-    private static final Set<UUID> LOGGED_PROJECTED_ENTITY_CHUNKS = ConcurrentHashMap.newKeySet();
 
     @Shadow
     @Nullable
@@ -103,17 +93,7 @@ public class LevelRendererMixin {
 
         final Vec3 projectedPosition = subLevel.renderPose(partialTick).transformPosition(entity.position());
         final BlockPos projectedBlockPosition = BlockPos.containing(projectedPosition);
-        final boolean projectedCompiled = original.call(instance, projectedBlockPosition);
-
-        if (LOGGED_PROJECTED_ENTITY_CHUNKS.size() < 96
-                && LOGGED_PROJECTED_ENTITY_CHUNKS.add(entity.getUUID())) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER, "SABLE-SUBLEVEL-ENTITY-COMPILED-CHUNK: uuid={}, entityId={}, plotPos={}, "
-                            + "plotCompiled={}, projectedPos={}, projectedCompiled={}",
-                    entity.getUUID(), entity.getId(), plotPosition,
-                    original.call(instance, plotPosition), projectedBlockPosition, projectedCompiled);
-        }
-
-        return projectedCompiled;
+        return original.call(instance, projectedBlockPosition);
     }
 
     @Inject(method = "allChanged", at = @At("TAIL"))
@@ -143,10 +123,6 @@ public class LevelRendererMixin {
             final Iterable<ClientSubLevel> sublevels = ((ClientSubLevelContainer)
                     ((SubLevelContainerHolder) this.level).sable$getPlotContainer()).getAllSubLevels();
             final Vec3 cameraPosition = camera.getPosition();
-            if (LOGGED_NATIVE_SINGLE_RENDER.compareAndSet(false, true)) {
-                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER,
-                        "[SABLE-NATIVE-SINGLE-RENDER] upstreamStage=true");
-            }
             SubLevelRenderDispatcher.get().renderAfterSections(sublevels,
                     cameraPosition.x, cameraPosition.y, cameraPosition.z,
                     new Matrix4f(poseStack.last().pose()), projection, partialTick);
@@ -183,11 +159,6 @@ public class LevelRendererMixin {
                 }
 
                 final Vec3 cameraPosition = camera.getPosition();
-                if (LOGGED_NATIVE_BLOCK_ENTITY_RENDER.compareAndSet(false, true)) {
-                    dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(LOGGER,
-                            "[SABLE-NATIVE-BLOCK-ENTITY-RENDER] beforeGlobalBlockEntities=true "
-                                    + "bufferOwner=level-renderer");
-                }
                 ((VanillaSubLevelRenderDispatcher) SubLevelRenderDispatcher.get()).renderBlockEntities(
                         container.getAllSubLevels(), this.sable$blockEntityRenderer,
                         cameraPosition.x, cameraPosition.y, cameraPosition.z, partialTick,

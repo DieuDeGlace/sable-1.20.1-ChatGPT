@@ -24,8 +24,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Carries Embeddium's chunk rebuild notifications into Sable's vanilla
@@ -39,10 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Pseudo
 @Mixin(targets = "me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer", remap = false)
 public abstract class EmbeddiumDirtyBridgeMixin {
-
-    private static final AtomicLong SABLE$BRIDGED_REBUILDS = new AtomicLong();
-    private static final AtomicBoolean SABLE$LOGGED_NATIVE_RENDER = new AtomicBoolean();
-    private static final AtomicBoolean SABLE$LOGGED_TERRAIN_LIFECYCLE = new AtomicBoolean();
 
     /**
      * Target adaptation of upstream SodiumWorldRendererMixin#sable$setupTerrain:
@@ -72,10 +66,6 @@ public abstract class EmbeddiumDirtyBridgeMixin {
         final PrioritizeChunkUpdates chunkUpdates = minecraft.options.prioritizeChunkUpdates().get();
         for (final ClientSubLevel subLevel : container.getAllSubLevels()) {
             subLevel.getRenderData().compileSections(chunkUpdates, renderRegionCache, camera);
-        }
-
-        if (SABLE$LOGGED_TERRAIN_LIFECYCLE.compareAndSet(false, true)) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-EMBEDDIUM-REACHAROUND-TERRAIN: preRenderDrain=true, compile=true");
         }
     }
 
@@ -128,10 +118,6 @@ public abstract class EmbeddiumDirtyBridgeMixin {
             RenderSystem.setupShaderLights(shader);
             shader.apply();
 
-            if (SABLE$LOGGED_NATIVE_RENDER.compareAndSet(false, true)) {
-                dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "[SABLE-EMBEDDIUM-NATIVE-RENDER] drawChunkLayerTail=true shader={}",
-                        shader.getName());
-            }
             SubLevelRenderDispatcher.get().renderSectionLayer(container.getAllSubLevels(), renderType, shader,
                     cameraX, cameraY, cameraZ, modelView, projection, minecraft.getPartialTick());
 
@@ -156,17 +142,9 @@ public abstract class EmbeddiumDirtyBridgeMixin {
 
         final ClientSubLevel subLevel = (ClientSubLevel) Sable.HELPER.getContaining(level, new ChunkPos(x, z));
         if (subLevel == null) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.warn(Sable.LOGGER, "SABLE-EMBEDDIUM-DIRTY-MISS: chunk=({}, {}, {}), playerChanged={}",
-                    x, y, z, playerChanged);
             return;
         }
 
         subLevel.getRenderData().setDirty(x, y, z, playerChanged);
-
-        final long bridged = SABLE$BRIDGED_REBUILDS.incrementAndGet();
-        if (bridged <= 16 || (bridged & (bridged - 1)) == 0) {
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-EMBEDDIUM-DIRTY-BRIDGE: count={}, chunk=({}, {}, {}), playerChanged={}",
-                    bridged, x, y, z, playerChanged);
-        }
     }
 }

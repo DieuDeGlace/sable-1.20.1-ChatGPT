@@ -1,6 +1,5 @@
 package dev.ryanhcode.sable.sublevel.render.dispatcher;
 
-import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.render.SubLevelRenderData;
 import dev.ryanhcode.sable.sublevel.render.vanilla.VanillaChunkedSubLevelRenderData;
@@ -39,9 +38,6 @@ public final class ReachAroundSubLevelRenderDispatcher extends VanillaSubLevelRe
             this.sectionRenderDispatcher = new ChunkRenderDispatcher(
                     level, levelRenderer, Util.backgroundExecutor(), minecraft.is64Bit(),
                     this.fixedBufferPack, this.asynchronousBuilderCount);
-            dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(Sable.LOGGER, "SABLE-EMBEDDIUM-REACHAROUND: dedicatedDispatcher=true, "
-                            + "dedicatedFixedBuffers=true, asyncBuilders={}",
-                    this.asynchronousBuilderCount);
         }
 
         this.sectionRenderDispatcher.setLevel(level);

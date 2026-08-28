@@ -171,6 +171,8 @@ public final class SableForgeBootstrap {
             MinecraftForge.EVENT_BUS.addListener(SableForgeClientFreezeBridge::onClientTick);
             MinecraftForge.EVENT_BUS.addListener(
                     dev.ryanhcode.sable.forge.client.SableFlywheelDebugCommands::register);
+            MinecraftForge.EVENT_BUS.addListener(
+                    dev.ryanhcode.sable.forge.client.SableIrisProgramRecoveryCommands::register);
             SableClient.init();
             ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, SableClientConfig.SPEC);
             modEventBus.<ModConfigEvent.Loading>addListener(event -> {

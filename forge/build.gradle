@@ -75,8 +75,6 @@ sourceSets {
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/veil'
-            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/diagnostic'
-            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/diagnostic'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/physics/callback'
@@ -121,6 +119,7 @@ sourceSets {
                         || path.contains('/neoforge/mixin/sound/')
                         || path.contains('/neoforge/mixin/dynamic_directional_shading/')
                 def selectedIrisBridge = path.endsWith('/compatibility/SableIrisCompat.java')
+                        || path.endsWith('/compatibility/SableIrisProgramRecovery.java')
                         || path.endsWith('/mixinterface/compatibility/iris/ExtendedShaderExtension.java')
                 def selectedVanilla = path.contains('/mixin/block_placement/')
                         || path.contains('/mixin/chunk_container_replacement/')
@@ -503,16 +502,21 @@ tasks.register('mergeSableRefmap') {
             }
         }
 
-        // Storage Drawers is a third-party @Pseudo target, while the wrapped
-        // Vec3 call is a Minecraft method. Mixin's annotation processor cannot
-        // infer that mixed ownership boundary, so require the explicit 1.20.1
-        // SRG selector used by production Forge.
-        def storageDrawersMixin = 'dev/ryanhcode/sable/neoforge/mixin/compatibility/storagedrawers/WorldUtilsMixin'
-        def storageDrawersDistanceSelector = 'Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D'
-        def storageDrawersDistanceMapping = 'Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D'
-        [base.mappings[storageDrawersMixin], base.data.searge[storageDrawersMixin]].each { actual ->
-            if (actual == null || actual[storageDrawersDistanceSelector] != storageDrawersDistanceMapping) {
-                throw new GradleException("Missing or incorrect Storage Drawers SRG mapping for ${storageDrawersMixin}: ${actual == null ? null : actual[storageDrawersDistanceSelector]}")
+        // These are third-party @Pseudo targets, while their wrapped Vec3 call
+        // is a Minecraft method. Mixin's annotation processor cannot infer that
+        // mixed ownership boundary, so require the explicit 1.20.1 SRG selector
+        // used by production Forge.
+        def thirdPartyRayDistanceMixins = [
+                'dev/ryanhcode/sable/neoforge/mixin/compatibility/storagedrawers/WorldUtilsMixin',
+                'dev/ryanhcode/sable/neoforge/mixin/compatibility/legendarysurvivaloverhaul/LegendarySurvivalOverhaulWorldUtilMixin'
+        ]
+        def thirdPartyRayDistanceSelector = 'Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D'
+        def thirdPartyRayDistanceMapping = 'Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D'
+        thirdPartyRayDistanceMixins.each { mixinClass ->
+            [base.mappings[mixinClass], base.data.searge[mixinClass]].each { actual ->
+                if (actual == null || actual[thirdPartyRayDistanceSelector] != thirdPartyRayDistanceMapping) {
+                    throw new GradleException("Missing or incorrect third-party ray-distance SRG mapping for ${mixinClass}: ${actual == null ? null : actual[thirdPartyRayDistanceSelector]}")
+                }
             }
         }
 
@@ -745,7 +749,6 @@ tasks.named('sourcesJar') {
     }
     from('src/main/java') {
         include 'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/**'
-        include 'dev/ryanhcode/sable/neoforge/mixin/diagnostic/**'
     }
 }
 

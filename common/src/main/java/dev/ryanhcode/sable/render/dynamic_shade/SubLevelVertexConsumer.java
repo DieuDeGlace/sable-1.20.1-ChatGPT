@@ -42,7 +42,6 @@ public class SubLevelVertexConsumer implements VertexConsumer {
 
     @Override
     public VertexConsumer uv2(final int u, final int v) {
-        SableDynamicDirectionalShading.recordLightCoordinates(u, v);
         this.delegate.uv2(u, v);
         return this;
     }

@@ -1,11 +1,9 @@
 package dev.ryanhcode.sable.neoforge.mixin.compatibility.flywheel;
 
-import com.mojang.logging.LogUtils;
 import dev.engine_room.flywheel.backend.glsl.LoadResult;
 import dev.engine_room.flywheel.backend.glsl.ShaderSources;
 import dev.engine_room.flywheel.backend.glsl.SourceFile;
 import net.minecraft.resources.ResourceLocation;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,7 +19,6 @@ import java.util.Set;
 
 @Mixin(value = ShaderSources.class, remap = false)
 public class ShaderSourcesMixin {
-    private static final Logger SABLE$LOGGER = LogUtils.getLogger();
     private static final Map<ResourceLocation, ResourceLocation> SABLE$SOURCE_ALIASES = sable$sourceAliases();
 
     @Shadow
@@ -37,7 +34,6 @@ public class ShaderSourcesMixin {
      */
     @Inject(method = "<init>", at = @At("RETURN"))
     private void sable$bindCoherentShaderAbi(final CallbackInfo ci) {
-        int replacements = 0;
         for (final Map.Entry<ResourceLocation, ResourceLocation> alias : SABLE$SOURCE_ALIASES.entrySet()) {
             final ResourceLocation originalName = alias.getKey();
             final ResourceLocation extendedName = alias.getValue();
@@ -51,33 +47,27 @@ public class ShaderSourcesMixin {
             final Set<SourceFile> visited = Collections.newSetFromMap(new IdentityHashMap<>());
             for (final LoadResult result : this.cache.values()) {
                 if (result instanceof final LoadResult.Success success) {
-                    replacements += sable$replaceIncludes(success.source(), originalName, extended, visited);
+                    sable$replaceIncludes(success.source(), originalName, extended, visited);
                 }
             }
             this.cache.put(originalName, extendedResult);
         }
-
-        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(SABLE$LOGGER, "SABLE-FLYWHEEL-SHADER-ABI: aliases={}, includeReplacements={}, matrixStrideBytes=192",
-                SABLE$SOURCE_ALIASES.size(), replacements);
     }
 
-    private static int sable$replaceIncludes(final SourceFile source, final ResourceLocation originalName,
-                                             final SourceFile extended, final Set<SourceFile> visited) {
+    private static void sable$replaceIncludes(final SourceFile source, final ResourceLocation originalName,
+                                              final SourceFile extended, final Set<SourceFile> visited) {
         if (!visited.add(source)) {
-            return 0;
+            return;
         }
 
-        int replacements = 0;
         for (int i = 0; i < source.included.size(); i++) {
             final SourceFile included = source.included.get(i);
             if (included.name.equals(originalName)) {
                 source.included.set(i, extended);
-                replacements++;
             } else {
-                replacements += sable$replaceIncludes(included, originalName, extended, visited);
+                sable$replaceIncludes(included, originalName, extended, visited);
             }
         }
-        return replacements;
     }
 
     private static Map<ResourceLocation, ResourceLocation> sable$sourceAliases() {

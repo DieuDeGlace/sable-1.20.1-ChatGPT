@@ -22,16 +22,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * Fixes the rendering of contraption visuals on sub-levels
  */
 @Mixin(ContraptionVisual.class)
 public abstract class ContraptionVisualMixin extends AbstractEntityVisual<AbstractContraptionEntity> {
-
-    private static final Set<String> SABLE$LOGGED_VISUAL_STATES = ConcurrentHashMap.newKeySet();
 
     @Shadow
     @Final
@@ -55,7 +50,6 @@ public abstract class ContraptionVisualMixin extends AbstractEntityVisual<Abstra
         final boolean inBounds = container.inBounds(chunkPos);
 
         if (!inBounds) {
-            sable$logVisualState("outside-plot", chunkPos, null, null);
             return;
         }
 
@@ -65,7 +59,6 @@ public abstract class ContraptionVisualMixin extends AbstractEntityVisual<Abstra
         final FlywheelCompatNeoForge.SubLevelFlwRenderState state = FlywheelCompatNeoForge.getInfo(ChunkPos.asLong(plotX, plotZ));
 
         if (state == null) {
-            sable$logVisualState("render-state-missing", chunkPos, plotX, plotZ);
             return;
         }
 
@@ -103,25 +96,6 @@ public abstract class ContraptionVisualMixin extends AbstractEntityVisual<Abstra
         if (this.embedding instanceof final EmbeddedEnvironmentExtension extension) {
             extension.sable$setLightingInfo(sceneMatrix.last().pose(), state.sceneID, state.latestSkyLightScale / 15.0f);
         }
-        sable$logVisualState("embedded", chunkPos, plotX, plotZ);
         ci.cancel();
-    }
-
-    private void sable$logVisualState(final String branch, final ChunkPos chunkPos,
-                                      final Integer plotX, final Integer plotZ) {
-        final String key = this.entity.getUUID() + ":" + branch;
-        if (SABLE$LOGGED_VISUAL_STATES.size() >= 192 || !SABLE$LOGGED_VISUAL_STATES.add(key)) {
-            return;
-        }
-        final int blockCount = this.entity.getContraption() == null
-                ? -1 : this.entity.getContraption().getBlocks().size();
-        final float poseDet = this.contraptionMatrix.last().pose().determinant();
-        final float normalDet = this.contraptionMatrix.last().normal().determinant();
-        dev.ryanhcode.sable.util.DiagnosticLogLimiter.info(dev.ryanhcode.sable.Sable.LOGGER,
-                "SABLE-CREATE-CONTRAPTION-VISUAL: branch={}, uuid={}, entityId={}, chunk={}, plot=({},{}), "
-                        + "position=[{},{},{}], blocks={}, removed={}, poseDet={}, normalDet={}",
-                branch, this.entity.getUUID(), this.entity.getId(), chunkPos, plotX, plotZ,
-                this.entity.getX(), this.entity.getY(), this.entity.getZ(), blockCount,
-                this.entity.isRemoved(), poseDet, normalDet);
     }
 }
