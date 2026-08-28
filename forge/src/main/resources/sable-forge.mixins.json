@@ -11,6 +11,7 @@
   "mixins": [
     "entities_stick_sublevels.effects.LivingEntityMixin",
     "compatibility.immersiveengineering.TurretBlockEntityMixin",
+    "compatibility.mts.BuilderItemMixin",
     "compatibility.storagedrawers.WorldUtilsMixin"
   ],
   "client": [
@@ -20,8 +21,18 @@
     "camera_rotation.CameraMixin",
     "compatibility.veil.PostProcessingManagerMixin",
     "compatibility.veil.VeilDeferredRendererMixin",
+    "diagnostic.CodeChickenShaderProgramStateDiagnosticMixin",
+    "diagnostic.ExtendedShaderProgramStateDiagnosticMixin",
     "diagnostic.FirstPersonHandDiagnosticMixin",
     "diagnostic.GlDebugMixin",
+    "diagnostic.GlStateManagerProgramStateDiagnosticMixin",
+    "diagnostic.ImGuiProgramStateDiagnosticMixin",
+    "diagnostic.ProgramManagerProgramStateDiagnosticMixin",
+    "diagnostic.ShaderInstanceProgramStateDiagnosticMixin",
+    "diagnostic.SimulatedEndSeaProgramStateDiagnosticMixin",
+    "diagnostic.VeilIndirectLightProgramStateDiagnosticMixin",
+    "diagnostic.VeilShaderProgramStateDiagnosticMixin",
+    "diagnostic.VeilShaderWrapperProgramStateDiagnosticMixin",
     "dynamic_directional_shading.ChunkRenderCompileResultsAccessor",
     "dynamic_directional_shading.ChunkRenderRebuildTaskMixin",
     "sound.MovingSoundInstanceDelegateMixin"

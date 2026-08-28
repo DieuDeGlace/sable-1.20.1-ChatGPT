@@ -8,6 +8,7 @@ import dev.ryanhcode.sable.api.SubLevelHelper;
 import dev.ryanhcode.sable.api.entity.EntitySubLevelUtil;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.mixinhelpers.entity.entity_riding_sub_level_vehicle.EntityRidingSubLevelVehicleHelper;
+import dev.ryanhcode.sable.mixinhelpers.entity.entity_riding_sub_level_vehicle.RidingRotationCapture;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.tracking_points.SubLevelTrackingPointSavedData;
@@ -33,6 +34,17 @@ import java.util.UUID;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
+
+    @Inject(method = {"setXRot", "setYRot"}, at = @At("HEAD"))
+    private void sable$recordRidingRotationWrite(final float rotation, final CallbackInfo ci) {
+        RidingRotationCapture.recordRotationWrite(this);
+    }
+
+    @Inject(method = "setRot", at = @At("HEAD"))
+    private void sable$recordRidingRotationWrite(final float yRotation, final float xRotation,
+                                                  final CallbackInfo ci) {
+        RidingRotationCapture.recordRotationWrite(this);
+    }
 
     @Shadow
     private Level level;

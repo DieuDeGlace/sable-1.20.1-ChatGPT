@@ -2,6 +2,7 @@ package dev.ryanhcode.sable.neoforge.mixin.diagnostic;
 
 import com.mojang.blaze3d.platform.GlDebug;
 import com.mojang.logging.LogUtils;
+import dev.ryanhcode.sable.neoforge.diagnostic.GlProgramStateTrace;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
@@ -40,6 +41,7 @@ public abstract class GlDebugMixin {
 
         if (!sable$loggedNoActiveProgramFault && message.contains("No active program")) {
             sable$loggedNoActiveProgramFault = true;
+            GlProgramStateTrace.nativeNoActiveProgram(message);
             if (dev.ryanhcode.sable.util.DiagnosticLogLimiter.tryAcquire("SABLE-GL-NO-ACTIVE-PROGRAM-CALLSITE")) {
                 SABLE$LOGGER.error("SABLE-GL-NO-ACTIVE-PROGRAM-CALLSITE: source={}, type={}, id={}, severity={}, message={}",
                         source, type, id, severity, message,

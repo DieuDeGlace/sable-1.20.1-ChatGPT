@@ -1,11 +1,13 @@
 package dev.ryanhcode.sable.mixin.entity.entity_rotations_and_riding;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.mojang.authlib.GameProfile;
 import dev.ryanhcode.sable.ActiveSableCompanion;
 import dev.ryanhcode.sable.Sable;
-import dev.ryanhcode.sable.api.SubLevelHelper;
 import dev.ryanhcode.sable.api.entity.EntitySubLevelUtil;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
+import dev.ryanhcode.sable.mixinhelpers.entity.entity_riding_sub_level_vehicle.RidingRotationCapture;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
@@ -24,7 +26,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerMixin extends Player {
@@ -55,25 +56,45 @@ public abstract class LocalPlayerMixin extends Player {
         return new Vec3(k * l, -m, j * l);
     }
 
-    @Inject(method = "startRiding(Lnet/minecraft/world/entity/Entity;Z)Z", at = @At("RETURN"))
-    private void sable$onStartRiding(final Entity entity, final boolean bl, final CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValue() || !EntitySubLevelUtil.shouldKick(this)) {
-            return;
+    @WrapMethod(method = "startRiding(Lnet/minecraft/world/entity/Entity;Z)Z")
+    private boolean sable$startRidingWithSubLevelViewContract(final Entity entity, final boolean force,
+                                                              final Operation<Boolean> original) {
+        if (!EntitySubLevelUtil.shouldKick(this) || Sable.HELPER.getContaining(entity) == null) {
+            return original.call(entity, force);
         }
 
-        final Entity vehicle = this.getVehicle();
-        if (vehicle == null) {
-            return;
-        }
+        final Vec3 preMountGlobalLook = this.getLookAngle();
+        RidingRotationCapture.begin(this);
+        boolean captureFinished = false;
+        try {
+            final boolean mounted = original.call(entity, force);
+            final RidingRotationCapture.Result rotationCapture = RidingRotationCapture.finish(this);
+            captureFinished = true;
 
-        final SubLevel subLevel = Sable.HELPER.getContaining(vehicle);
-        if (subLevel != null && EntitySubLevelUtil.shouldKick(this)) {
-            final Vec3 lookDir = this.sable$calculateViewVector2(this.getXRot(), this.getYRot());
-            final Vec3 localLookDir = subLevel.logicalPose().transformNormalInverse(lookDir);
+            if (!mounted || !rotationCapture.captured() || !EntitySubLevelUtil.shouldKick(this)) {
+                return mounted;
+            }
 
-            vehicle.positionRider(this);
-            EntitySubLevelUtil.setOldPosNoMovement(this);
-            this.lookAt(EntityAnchorArgument.Anchor.FEET, this.position().add(localLookDir));
+            final Entity vehicle = this.getVehicle();
+            if (vehicle == null) {
+                return mounted;
+            }
+
+            final SubLevel subLevel = Sable.HELPER.getContaining(vehicle);
+            if (subLevel != null) {
+                vehicle.positionRider(this);
+                EntitySubLevelUtil.setOldPosNoMovement(this);
+
+                if (!rotationCapture.rotationWritten()) {
+                    final Vec3 localLookDir = subLevel.logicalPose().transformNormalInverse(preMountGlobalLook);
+                    this.lookAt(EntityAnchorArgument.Anchor.FEET, this.position().add(localLookDir));
+                }
+            }
+            return mounted;
+        } finally {
+            if (!captureFinished) {
+                RidingRotationCapture.finish(this);
+            }
         }
     }
 

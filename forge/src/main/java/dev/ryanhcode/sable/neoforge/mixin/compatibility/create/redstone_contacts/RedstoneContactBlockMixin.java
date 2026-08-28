@@ -4,6 +4,8 @@ import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.content.redstone.contact.RedstoneContactBlock;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
+import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
+import com.simibubi.create.foundation.blockEntity.SmartBlockEntityTicker;
 import dev.ryanhcode.sable.neoforge.mixinhelper.compatibility.create.redstone_contact.RedstoneContactBlockEntity;
 import dev.ryanhcode.sable.neoforge.mixinhelper.compatibility.create.redstone_contact.RedstoneContactBlockEntityTypeGetter;
 import net.minecraft.world.level.Level;
@@ -36,10 +38,9 @@ public class RedstoneContactBlockMixin extends WrenchableDirectionalBlock implem
 
     @Override
     public <S extends BlockEntity> BlockEntityTicker<S> getTicker(final Level level, final BlockState p_153213_, final BlockEntityType<S> p_153214_) {
-        if (!level.isClientSide) {
-            return IBE.super.getTicker(level, p_153213_, p_153214_);
-        } else {
-            return null;
+        if (!level.isClientSide && SmartBlockEntity.class.isAssignableFrom(this.getBlockEntityClass())) {
+            return new SmartBlockEntityTicker<>();
         }
+        return null;
     }
 }

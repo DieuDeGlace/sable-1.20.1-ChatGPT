@@ -4,6 +4,7 @@ import com.mojang.blaze3d.shaders.ProgramManager;
 import com.mojang.blaze3d.shaders.Uniform;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.mixinterface.compatibility.iris.ExtendedShaderExtension;
+import dev.ryanhcode.sable.neoforge.diagnostic.GlProgramStateTrace;
 import net.minecraft.client.renderer.ShaderInstance;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -66,6 +67,7 @@ public class ExtendedShaderMixin implements ExtendedShaderExtension {
         final ShaderInstance shader = (ShaderInstance) (Object) this;
         final int expectedProgram = shader.getId();
         final int activeProgram = GL20C.glGetInteger(GL20C.GL_CURRENT_PROGRAM);
+        GlProgramStateTrace.observedCheckpoint("extended-recovery-entry", shader, activeProgram, false);
         if (activeProgram == expectedProgram) {
             return;
         }

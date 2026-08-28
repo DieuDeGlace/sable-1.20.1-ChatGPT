@@ -75,6 +75,7 @@ sourceSets {
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/veil'
+            srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/diagnostic'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixin/diagnostic'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinhelper/compatibility/flywheel'
             srcDir 'src/main/java/dev/ryanhcode/sable/neoforge/mixinterface/compatibility/flywheel'
@@ -619,6 +620,11 @@ tasks.named('compileJava') {
     source file('src/port/java/dev/ryanhcode/sable/sublevel/render/dispatcher/ReachAroundSubLevelRenderDispatcher.java')
     // Create 1.20.1 generators need reactivation after the bulk-move network clear.
     source file('src/port/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/create/kinetic_refresh/KineticBlockMixin.java')
+    // Optional MTS integration is a target-only adapter with no compile-time
+    // dependency on MTS. Keep its exact helper and mixin in the production
+    // compiler input without widening the general compatibility source filter.
+    source file('src/port/java/dev/ryanhcode/sable/neoforge/compatibility/mts/MtsVehiclePlacementCompatibility.java')
+    source file('src/port/java/dev/ryanhcode/sable/neoforge/mixin/compatibility/mts/BuilderItemMixin.java')
     // 1.20.1 equivalents of upstream's two LevelRenderer hooks. These draw
     // before ShaderInstance.clear(), preserving the active vanilla lightmap.
     source fileTree('src/port/java') {
