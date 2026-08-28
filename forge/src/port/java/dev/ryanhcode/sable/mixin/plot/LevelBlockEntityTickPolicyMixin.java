@@ -1,9 +1,8 @@
 package dev.ryanhcode.sable.mixin.plot;
 
-import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
+import dev.ryanhcode.sable.sublevel.plot.PlotBlockActivityPolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,11 +29,6 @@ public abstract class LevelBlockEntityTickPolicyMixin {
             )
     )
     private boolean sable$shouldTickPlotBlockEntity(final Level instance, final BlockPos pos) {
-        final boolean original = instance.shouldTickBlocksAt(pos);
-        if (original || !(instance instanceof final ServerLevel level)) {
-            return original;
-        }
-        final SubLevelContainer container = SubLevelContainer.getContainer(level);
-        return container != null && container.getPlot(new ChunkPos(pos)) != null;
+        return PlotBlockActivityPolicy.shouldProcess(instance, pos, instance.shouldTickBlocksAt(pos));
     }
 }

@@ -26,6 +26,7 @@ import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.plot.LevelPlot;
 import dev.ryanhcode.sable.sublevel.storage.SubLevelRemovalReason;
 import dev.ryanhcode.sable.sublevel.system.SubLevelPhysicsSystem;
+import dev.ryanhcode.sable.validation.mixin.BellBlockEntityValidationAccessor;
 import dev.ryanhcode.sable.validation.mixin.LevelBlockEntityTickerValidationAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockSourceImpl;
@@ -61,6 +62,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.PathNavigationRegion;
 import net.minecraft.world.level.block.BaseRailBlock;
+import net.minecraft.world.level.block.BellBlock;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -69,6 +71,7 @@ import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BellBlockEntity;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
@@ -938,6 +941,62 @@ public final class EntityBehaviorGameTests {
             if (helper.getLevel().shouldTickBlocksAt(motor.getBlockPos())) {
                 removeSubLevel(container, subLevel);
                 helper.fail("Plot block-entity tick policy leaked into the 1.20.1 whole-chunk/random-tick gate");
+                return;
+            }
+
+            removeSubLevel(container, subLevel);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * Exercises the vanilla Bell lifecycle that originally exposed the split
+     * between admitted plot block-entity ticks and deferred plot block events.
+     */
+    @GameTest(template = "physicstest.gravity", timeoutTicks = 80)
+    public static void testBellBlockEventRunsInsideSubLevel(final GameTestHelper helper) {
+        final ServerLevel level = helper.getLevel();
+        final ServerSubLevelContainer container = requireContainer(level);
+        final ServerSubLevel subLevel = spawnSingleBlockSubLevel(container,
+                absolutePosition(helper, new Vector3d(2.5D, 9.0D, 2.5D)), Blocks.STONE.defaultBlockState());
+        final BlockPos localBellPos = BlockPos.ZERO.above();
+        final BlockPos plotBellPos = subLevel.getPlot().getCenterBlock().above();
+        subLevel.getPlot().getEmbeddedLevelAccessor().setBlock(
+                localBellPos, Blocks.BELL.defaultBlockState(), 3);
+
+        if (!(level.getBlockEntity(plotBellPos) instanceof BellBlockEntity)) {
+            removeSubLevel(container, subLevel);
+            helper.fail("Plot bell fixture did not create its block entity");
+            return;
+        }
+        if (level.shouldTickBlocksAt(plotBellPos)) {
+            removeSubLevel(container, subLevel);
+            helper.fail("Plot bell fixture leaked into the whole-chunk/random-tick gate");
+            return;
+        }
+        if (!((BellBlock) Blocks.BELL).attemptToRing(level, plotBellPos, Direction.NORTH)) {
+            removeSubLevel(container, subLevel);
+            helper.fail("Vanilla BellBlock refused the plot bell fixture");
+            return;
+        }
+
+        helper.runAfterDelay(12, () -> {
+            final var blockEntity = level.getBlockEntity(plotBellPos);
+            if (!(blockEntity instanceof final BellBlockEntity bell)) {
+                removeSubLevel(container, subLevel);
+                helper.fail("Plot bell block entity disappeared before its event was processed");
+                return;
+            }
+            final List<LivingEntity> nearbyEntities =
+                    ((BellBlockEntityValidationAccessor) (Object) bell).sable$getNearbyEntities();
+            if (nearbyEntities == null) {
+                removeSubLevel(container, subLevel);
+                helper.fail("Plot bell ticked without receiving the block event that initializes nearby entities");
+                return;
+            }
+            if (level.shouldTickBlocksAt(plotBellPos)) {
+                removeSubLevel(container, subLevel);
+                helper.fail("Plot block-event admission widened the whole-chunk/random-tick gate");
                 return;
             }
 

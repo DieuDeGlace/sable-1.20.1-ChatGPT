@@ -45,10 +45,36 @@ class PlayerMovementMixinResponsibilityTest {
         final String config = Files.readString(MIXIN_CONFIG);
 
         assertExactlyOnce(config, "plot.LevelBlockEntityTickPolicyMixin");
+        assertExactlyOnce(config, "plot.ServerLevelBlockEventPolicyMixin");
         assertFalse(config.contains("plot.ServerLevelTickPolicyMixin"),
                 "The unsafe 1.20.1 whole-chunk tick adapter is still active");
         assertFalse(config.contains("\"plot.ServerLevelMixin\""),
                 "The 1.21 upstream tick-policy mixin and its 1.20 target adapter are both active");
+    }
+
+    @Test
+    void plotBlockActivityPolicyRemainsBoundToExactVanillaCallSites() throws IOException {
+        final Path blockEntityMixin = Path.of(System.getProperty("user.dir"))
+                .resolve("src/port/java/dev/ryanhcode/sable/mixin/plot/LevelBlockEntityTickPolicyMixin.java")
+                .normalize();
+        final Path blockEventMixin = Path.of(System.getProperty("user.dir"))
+                .resolve("src/port/java/dev/ryanhcode/sable/mixin/plot/ServerLevelBlockEventPolicyMixin.java")
+                .normalize();
+        final Path policy = Path.of(System.getProperty("user.dir"))
+                .resolve("src/port/java/dev/ryanhcode/sable/sublevel/plot/PlotBlockActivityPolicy.java")
+                .normalize();
+
+        final String blockEntityCode = Files.readString(blockEntityMixin);
+        final String blockEventCode = Files.readString(blockEventMixin);
+        final String policyCode = Files.readString(policy);
+
+        assertTrue(blockEntityCode.contains("method = \"tickBlockEntities\""));
+        assertTrue(blockEventCode.contains("method = \"runBlockEvents\""));
+        assertTrue(blockEntityCode.contains("PlotBlockActivityPolicy.shouldProcess"));
+        assertTrue(blockEventCode.contains("PlotBlockActivityPolicy.shouldProcess"));
+        assertTrue(policyCode.contains("container.getPlot(new ChunkPos(pos)) != null"));
+        assertFalse(blockEventCode.contains("@Inject"),
+                "Block-event compatibility must not replace ServerLevel's global tick policy");
     }
 
     @Test

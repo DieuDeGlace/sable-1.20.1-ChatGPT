@@ -124,6 +124,7 @@
     "plot.serialization.LevelChunkTicksMixin",
     "plot.ServerLevelLifecycleMixin",
     "plot.LevelBlockEntityTickPolicyMixin",
+    "plot.ServerLevelBlockEventPolicyMixin",
     "plot.container.ServerLevelMixin",
     "udp.ConnectionMixin",
     "udp.MinecraftServerMixin",

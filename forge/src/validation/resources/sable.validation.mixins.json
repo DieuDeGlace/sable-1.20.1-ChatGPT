@@ -4,6 +4,7 @@
   "package": "dev.ryanhcode.sable.validation.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "BellBlockEntityValidationAccessor",
     "FreezePlayerPacketValidationMixin",
     "LevelBlockEntityTickerValidationAccessor",
     "PacketManagerValidationMixin",

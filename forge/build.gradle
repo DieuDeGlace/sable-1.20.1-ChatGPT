@@ -612,6 +612,8 @@ tasks.named('compileJava') {
     // Target-only plot tick policy lives at its real package path and must be
     // present in the production compiler input, not only the refmap source set.
     source file('src/port/java/dev/ryanhcode/sable/mixin/plot/LevelBlockEntityTickPolicyMixin.java')
+    source file('src/port/java/dev/ryanhcode/sable/mixin/plot/ServerLevelBlockEventPolicyMixin.java')
+    source file('src/port/java/dev/ryanhcode/sable/sublevel/plot/PlotBlockActivityPolicy.java')
     // Minecraft 1.20.1 funnels GameTest structure cleanup through this shared
     // hook; keep the target-signature adapter in the production JAR.
     source file('../common/src/main/java/dev/ryanhcode/sable/mixin/game_test/StructureUtilsMixin.java')

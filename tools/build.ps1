@@ -192,6 +192,8 @@ function Assert-ProductionJar {
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/PostProcessingManagerMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/VeilDeferredRendererMixin.class',
             'dev/ryanhcode/sable/mixinterface/plot/ServerChunkCacheLifecycleExtension.class',
+            'dev/ryanhcode/sable/mixin/plot/ServerLevelBlockEventPolicyMixin.class',
+            'dev/ryanhcode/sable/sublevel/plot/PlotBlockActivityPolicy.class',
             'dev/ryanhcode/sable/compatibility/SableIrisProgramRecovery.class',
             'dev/ryanhcode/sable/forge/client/SableIrisProgramRecoveryCommands.class',
             'LICENSE.md',
@@ -208,7 +210,9 @@ function Assert-ProductionJar {
             $_ -match '^dev/ryanhcode/sable/neoforge/(diagnostic|mixin/diagnostic)/' -or
             $_ -match '^dev/ryanhcode/sable/neoforge/compatibility/flywheel/SableFlywheel(Model)?Diagnostics\.class$' -or
             $_ -match '^dev/ryanhcode/sable/neoforge/mixin/compatibility/flywheel/(DrawManagerMixin|InstancedDrawAccessor|InstancedDrawManagerMixin|ModelsMixin)\.class$' -or
-            $_ -eq 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/contraptions/ContraptionEntityRendererMixin.class'
+            $_ -eq 'dev/ryanhcode/sable/neoforge/mixin/compatibility/create/contraptions/ContraptionEntityRendererMixin.class' -or
+            $_ -eq 'dev/ryanhcode/sable/mixin/plot/ServerLevelMixin.class' -or
+            $_ -eq 'dev/ryanhcode/sable/validation/mixin/BellBlockEntityValidationAccessor.class'
         })
         if ($forbidden.Count -gt 0) {
             throw "Development-only content entered the production JAR: $($forbidden -join ', ')"
@@ -279,6 +283,21 @@ function Assert-ProductionJar {
         }
 
         $abiChecks = @(
+            @{
+                Entry = 'dev/ryanhcode/sable/mixin/plot/LevelBlockEntityTickPolicyMixin.class'
+                Required = @('tickBlockEntities', 'PlotBlockActivityPolicy', 'shouldProcess')
+                Message = 'Plot block-entity ticking is not bound to the shared narrow activity policy'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/mixin/plot/ServerLevelBlockEventPolicyMixin.class'
+                Required = @('runBlockEvents', 'shouldTickBlocksAt', 'PlotBlockActivityPolicy', 'shouldProcess')
+                Message = 'Plot block events are not bound to the exact ServerLevel queue gate'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/sublevel/plot/PlotBlockActivityPolicy.class'
+                Required = @('SubLevelContainer', 'getContainer', 'getPlot', 'ChunkPos')
+                Message = 'Shared plot block activity policy no longer requires an allocated plot'
+            },
             @{
                 Entry = 'dev/ryanhcode/sable/neoforge/mixin/compatibility/legendarysurvivaloverhaul/LegendarySurvivalOverhaulWorldUtilMixin.class'
                 Required = @(
@@ -471,6 +490,11 @@ if (-not (Test-Path -LiteralPath $gradleExecutable -PathType Leaf)) {
 }
 
 $buildArguments = @('--no-daemon', '--stacktrace', ':forge:clean', ':forge:build')
+if ($Mode -eq 'test') {
+    # Keep development-only GameTest fixtures compiling without placing them in
+    # the production artifact or launching Minecraft during the unified build.
+    $buildArguments += ':forge:compileValidationJava'
+}
 if ($Offline) {
     $buildArguments += '--offline'
 }
