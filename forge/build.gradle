@@ -121,6 +121,7 @@ sourceSets {
                 def selectedIrisBridge = path.endsWith('/compatibility/SableIrisCompat.java')
                         || path.endsWith('/compatibility/SableIrisProgramRecovery.java')
                         || path.endsWith('/mixinterface/compatibility/iris/ExtendedShaderExtension.java')
+                def selectedComputerCraft = path.contains('/mixin/compatibility/computercraft/')
                 def selectedVanilla = path.contains('/mixin/block_placement/')
                         || path.contains('/mixin/chunk_container_replacement/')
                         || path.contains('/mixin/game_test/')
@@ -143,9 +144,10 @@ sourceSets {
                 def selectedTargetRenderAdapter = path.contains('/forge/src/port/java/dev/ryanhcode/sable/mixin/port/sublevel_render/')
                 def excludedSource = path.endsWith('/mixin/entity/entity_aabb_lookup/ClientLevelMixin.java')
                         || path.endsWith('/mixin/interaction_distance/PlayerMixin.java')
-                        || (path.contains('/compatibility/') && !selectedCreate && !selectedIrisBridge)
+                        || (path.contains('/compatibility/') && !selectedCreate && !selectedIrisBridge && !selectedComputerCraft)
                         || (path.contains('/mixin/')
                         && !selectedCreate
+                        && !selectedComputerCraft
                         && !selectedTargetRenderAdapter
                         && !path.contains('/neoforge/mixin/admitted/')
                         && !path.contains('/mixin/udp/')
@@ -520,6 +522,20 @@ tasks.register('mergeSableRefmap') {
             }
         }
 
+        // CC:Tweaked owns tryTransmit, while the wrapped Vec3 call is a
+        // Minecraft method. Preserve the third-party method name and bind only
+        // the inner call to the target Forge SRG name.
+        def computerCraftMixin = 'dev/ryanhcode/sable/mixin/compatibility/computercraft/WirelessNetworkMixin'
+        def computerCraftDistanceSelector = 'Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D'
+        def computerCraftDistanceMapping = 'Lnet/minecraft/world/phys/Vec3;m_82557_(Lnet/minecraft/world/phys/Vec3;)D'
+        base.mappings.computeIfAbsent(computerCraftMixin) { [:] }[computerCraftDistanceSelector] = computerCraftDistanceMapping
+        base.data.searge.computeIfAbsent(computerCraftMixin) { [:] }[computerCraftDistanceSelector] = computerCraftDistanceMapping
+        [base.mappings[computerCraftMixin], base.data.searge[computerCraftMixin]].each { actual ->
+            if (actual == null || actual[computerCraftDistanceSelector] != computerCraftDistanceMapping) {
+                throw new GradleException("Missing or incorrect ComputerCraft distance SRG mapping for ${computerCraftMixin}: ${actual == null ? null : actual[computerCraftDistanceSelector]}")
+            }
+        }
+
         // Dynamic block-face shading is split across the 1.20.1 chunk compiler,
         // flat-model and ambient-occlusion paths. Losing any one selector leaves
         // plot-axis lighting baked into a rotating physical object.
@@ -609,6 +625,9 @@ tasks.named('compileJava') {
     // root; a full javac pass prevents Gradle from pruning unchanged admitted
     // mixin classes during an incremental compile.
     options.incremental = false
+    // The shared compatibility tree is intentionally filtered. Admit only
+    // upstream's optional CC:Tweaked wireless-distance mixin into production.
+    source file('../common/src/main/java/dev/ryanhcode/sable/mixin/compatibility/computercraft/WirelessNetworkMixin.java')
     // Target-only plot tick policy lives at its real package path and must be
     // present in the production compiler input, not only the refmap source set.
     source file('src/port/java/dev/ryanhcode/sable/mixin/plot/LevelBlockEntityTickPolicyMixin.java')
@@ -725,6 +744,7 @@ tasks.named('sourcesJar') {
         rename { 'LICENSE-SABLE-COMPANION-MIT.txt' }
     }
     from('../common/src/main/java') {
+        include 'dev/ryanhcode/sable/mixin/compatibility/computercraft/**'
         include 'dev/ryanhcode/sable/mixin/dynamic_directional_shading/AmbientOcclusionFaceMixin.java'
         include 'dev/ryanhcode/sable/mixin/dynamic_directional_shading/ModelBlockRendererMixin.java'
         include 'dev/ryanhcode/sable/mixin/camera/camera_rotation/**'
@@ -983,6 +1003,12 @@ repositories {
     maven { url = 'https://maven.createmod.net' }
     maven { url = 'https://maven.ithundxr.dev/mirror' }
     maven { url = 'https://maven.ryanhcode.dev/releases' }
+    maven {
+        url = 'https://maven.squiddev.cc'
+        content {
+            includeGroup 'cc.tweaked'
+        }
+    }
 }
 
 dependencies {
@@ -1013,6 +1039,10 @@ dependencies {
     modCompileOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+
+    // Optional compatibility compile surface only. CC:Tweaked is neither
+    // embedded in Sable nor declared as a mandatory runtime dependency.
+    compileOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
 
     implementation(jarJar('io.github.llamalad7:mixinextras-forge:0.5.3'))
     compileOnly(annotationProcessor('io.github.llamalad7:mixinextras-common:0.5.3'))

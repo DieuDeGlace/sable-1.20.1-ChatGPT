@@ -22,6 +22,9 @@
     "dev/ryanhcode/sable/neoforge/mixin/compatibility/legendarysurvivaloverhaul/LegendarySurvivalOverhaulWorldUtilMixin": {
       "Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D"
     },
+    "dev/ryanhcode/sable/mixin/compatibility/computercraft/WirelessNetworkMixin": {
+      "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82557_(Lnet/minecraft/world/phys/Vec3;)D"
+    },
     "dev/ryanhcode/sable/mixin/sculk_vibrations/VibrationSystemTickerMixin": {
       "receiveVibration": "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Ticker;m_280174_(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Data;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;Lnet/minecraft/world/level/gameevent/vibrations/VibrationInfo;)Z",
       "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;getPositionSource()Lnet/minecraft/world/level/gameevent/PositionSource;": "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;m_280010_()Lnet/minecraft/world/level/gameevent/PositionSource;",
@@ -900,6 +903,9 @@
       },
       "dev/ryanhcode/sable/neoforge/mixin/compatibility/legendarysurvivaloverhaul/LegendarySurvivalOverhaulWorldUtilMixin": {
         "Lnet/minecraft/world/phys/Vec3;distanceTo(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82554_(Lnet/minecraft/world/phys/Vec3;)D"
+      },
+      "dev/ryanhcode/sable/mixin/compatibility/computercraft/WirelessNetworkMixin": {
+        "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D": "Lnet/minecraft/world/phys/Vec3;m_82557_(Lnet/minecraft/world/phys/Vec3;)D"
       },
       "dev/ryanhcode/sable/mixin/sculk_vibrations/VibrationSystemTickerMixin": {
         "receiveVibration": "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Ticker;m_280174_(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$Data;Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;Lnet/minecraft/world/level/gameevent/vibrations/VibrationInfo;)Z",
