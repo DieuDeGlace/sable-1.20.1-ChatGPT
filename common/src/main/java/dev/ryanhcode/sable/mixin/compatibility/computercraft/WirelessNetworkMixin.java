@@ -12,7 +12,15 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(WirelessNetwork.class)
 public class WirelessNetworkMixin {
 
-    @Redirect(remap = false, method = "tryTransmit", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"))
+    @Redirect(
+            method = "tryTransmit(Ldan200/computercraft/api/network/PacketReceiver;Ldan200/computercraft/api/network/Packet;DZ)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D",
+                    remap = true
+            ),
+            remap = false
+    )
     private static double getPosition(final Vec3 a, final Vec3 b, @Local(ordinal = 0, argsOnly = true) final PacketReceiver packetReceiver) {
         return Sable.HELPER.distanceSquaredWithSubLevels(packetReceiver.getLevel(), a, b);
     }

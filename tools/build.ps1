@@ -189,6 +189,7 @@ function Assert-ProductionJar {
             'assets/sable/flywheel/light/smooth_when_embedded.glsl',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/immersiveengineering/TurretBlockEntityMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/legendarysurvivaloverhaul/LegendarySurvivalOverhaulWorldUtilMixin.class',
+            'dev/ryanhcode/sable/mixin/compatibility/computercraft/WirelessNetworkMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/PostProcessingManagerMixin.class',
             'dev/ryanhcode/sable/neoforge/mixin/compatibility/veil/VeilDeferredRendererMixin.class',
             'dev/ryanhcode/sable/mixinterface/plot/ServerChunkCacheLifecycleExtension.class',
@@ -308,6 +309,16 @@ function Assert-ProductionJar {
                     'sqrt'
                 )
                 Message = 'Legendary Survival Overhaul looked-at entity ray is missing its coordinate-frame distance bridge'
+            },
+            @{
+                Entry = 'dev/ryanhcode/sable/mixin/compatibility/computercraft/WirelessNetworkMixin.class'
+                Required = @(
+                    'dan200/computercraft/shared/peripheral/modem/wireless/WirelessNetwork',
+                    'tryTransmit',
+                    'distanceSquaredWithSubLevels',
+                    'getLevel'
+                )
+                Message = 'CC:Tweaked wireless range is missing the upstream sub-level distance bridge'
             },
             @{
                 Entry = 'dev/ryanhcode/sable/physics/ReactionWheelManager.class'
