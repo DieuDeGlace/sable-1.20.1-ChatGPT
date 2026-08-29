@@ -91,6 +91,7 @@
     "compatibility.create.sticker.StickerBlockEntityMixin",
     "compatibility.create.sticker.StickerBlockMixin",
     "compatibility.create.stock_ticker.StockTickerInteractionHandlerMixin",
+    "compatibility.create.steam_engine.PoweredShaftBlockEntityMixin",
     "compatibility.create.super_glue.LevelAccessor",
     "compatibility.create.super_glue.SuperGlueEntityMixin",
     "compatibility.create.super_glue.SuperGlueRemovalPacketMixin",
