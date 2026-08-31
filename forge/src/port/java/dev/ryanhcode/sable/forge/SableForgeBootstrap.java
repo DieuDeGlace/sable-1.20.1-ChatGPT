@@ -502,18 +502,15 @@ public final class SableForgeBootstrap {
                 ResourceLocation.fromNamespaceAndPath(MOD_ID, "propulsion"),
                 ResourceLocation.fromNamespaceAndPath(MOD_ID, "lift"),
                 ResourceLocation.fromNamespaceAndPath(MOD_ID, "magnetic_force"));
-        if (ForceGroups.count() != expectedIds.size()
-                || !ForceGroups.REGISTRY.keySet().equals(expectedIds)) {
-            throw new IllegalStateException("Sable force-group registry mismatch: "
-                    + ForceGroups.REGISTRY.keySet());
-        }
+        ForceGroupRegistryVerifier.requireBuiltIns(ForceGroups.REGISTRY.keySet(), expectedIds);
         final ForceGroup gravity = ForceGroups.GRAVITY.get();
         final ForceGroup levitation = ForceGroups.LEVITATION.get();
         if (gravity.color() != 0x216e55 || gravity.defaultDisplayed()
                 || levitation.color() != 0x734480 || !levitation.defaultDisplayed()) {
             throw new IllegalStateException("Sable force-group fields do not match the source baseline");
         }
-        LOGGER.info("Sable force-group registry verified ({} exact entries)", ForceGroups.count());
+        LOGGER.info("Sable force-group registry verified ({} built-in entries, {} total entries)",
+                expectedIds.size(), ForceGroups.count());
     }
 
     private static <P> P roundTrip(final StreamCodec<ByteBuf, P> codec, final P expected) {

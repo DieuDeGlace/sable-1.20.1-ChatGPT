@@ -1,1 +1,2 @@
+- Allow addon force groups while continuing to require every built-in Sable force group
 - Fix an issue where assembling massless Create contraptions would crash the server
