@@ -263,12 +263,18 @@ function Assert-ProductionJar {
                 $configStream.Dispose()
             }
 
+            $configuredMixins = [System.Collections.Generic.List[string]]::new()
+            $extendedShaderSections = [System.Collections.Generic.List[string]]::new()
             foreach ($section in @('mixins', 'client', 'server')) {
                 $property = $config.PSObject.Properties[$section]
                 if ($null -eq $property) {
                     continue
                 }
                 foreach ($mixin in @($property.Value)) {
+                    $configuredMixins.Add([string]$mixin)
+                    if ([string]$mixin -eq 'compatibility.iris.ExtendedShaderMixin') {
+                        $extendedShaderSections.Add($section)
+                    }
                     $className = if ([string]::IsNullOrWhiteSpace([string]$config.package)) {
                         [string]$mixin
                     }
@@ -280,6 +286,10 @@ function Assert-ProductionJar {
                         throw "Production mixin config $configName references missing class $classPath"
                     }
                 }
+            }
+            if ($configName -eq 'sable.mixins.json' -and
+                    ($extendedShaderSections.Count -ne 1 -or $extendedShaderSections[0] -ne 'client')) {
+                throw 'Production sable.mixins.json must register the Oculus ExtendedShader recovery exactly once in its client section'
             }
         }
 
@@ -343,9 +353,9 @@ function Assert-ProductionJar {
             },
             @{
                 Entry = 'dev/ryanhcode/sable/mixin/compatibility/iris/ExtendedShaderMixin.class'
-                Required = @('SableIrisProgramRecovery', 'isEnabled', 'glGetInteger', 'm_85578_')
+                Required = @('SableIrisProgramRecovery', 'isEnabled', 'glGetInteger', 'm_85578_', 'glUseProgram')
                 Forbidden = @('GlProgramStateTrace', 'glIsProgram', 'SABLE-IRIS-PROGRAM-CACHE-RECOVERY')
-                Message = 'Oculus program recovery is not isolated behind the low-cost A/B control or still contains production diagnostics'
+                Message = 'Oculus program recovery is missing its gated canonical-bind/native-fallback sequence or still contains production diagnostics'
             },
             @{
                 Entry = 'dev/ryanhcode/sable/compatibility/SableIrisProgramRecovery.class'
@@ -471,6 +481,77 @@ function Assert-ProductionJar {
     }
 }
 
+function Assert-OculusProgramRecoveryBytecode {
+    param(
+        [Parameter(Mandatory)][string]$JarPath,
+        [Parameter(Mandatory)][string]$JavapExecutable
+    )
+
+    if (-not (Test-Path -LiteralPath $JavapExecutable -PathType Leaf)) {
+        throw "Java 17 javap is required for production bytecode verification: $JavapExecutable"
+    }
+
+    $previousErrorAction = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $javapLines = & $JavapExecutable -classpath $JarPath -p -c -v `
+            'dev.ryanhcode.sable.mixin.compatibility.iris.ExtendedShaderMixin' 2>&1
+        $javapExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
+    $javapText = ($javapLines | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+    if ($javapExitCode -ne 0) {
+        throw "javap failed while verifying Oculus recovery bytecode with exit code $javapExitCode`n$javapText"
+    }
+
+    $classAnnotationContract = '(?s)org\.spongepowered\.asm\.mixin\.Pseudo.*?' +
+        'org\.spongepowered\.asm\.mixin\.Mixin\(\s*' +
+        'targets=\["net\.irisshaders\.iris\.pipeline\.programs\.ExtendedShader"\]\s*' +
+        'remap=false\s*\)'
+    if (-not [regex]::IsMatch($javapText, $classAnnotationContract)) {
+        throw 'Production Oculus adapter lost its @Pseudo or exact non-remapped ExtendedShader @Mixin target'
+    }
+
+    $methodMatch = [regex]::Match(
+        $javapText,
+        '(?s)\r?\n  private void sable\$restoreProgramCacheCoherence.*?' +
+        '(?=\r?\n  (?:public|private|protected) [^\r\n]+\);(?:\r?\n|$))')
+    if (-not $methodMatch.Success) {
+        throw 'Production JAR is missing the Oculus recovery handler bytecode or its expected method boundary'
+    }
+    $methodText = $methodMatch.Value
+    $orderedContract = '(?s)SableIrisProgramRecovery\.isEnabled.*?\bifne\b.*?\breturn\b' +
+        '.*?ShaderInstance\.m_108943_:\(\)I.*?\bistore_3\b' +
+        '.*?int 35725.*?GL20C\.glGetInteger.*?\bistore\s+4\b' +
+        '.*?\biload\s+4\b.*?\biload_3\b.*?\bif_icmpne\b.*?\breturn\b' +
+        '.*?\biload_3\b.*?ProgramManager\.m_85578_' +
+        '.*?int 35725.*?GL20C\.glGetInteger.*?\biload_3\b.*?\bif_icmpeq\b' +
+        '.*?\biload_3\b.*?GL20C\.glUseProgram.*?\breturn\b'
+    if (-not [regex]::IsMatch($methodText, $orderedContract)) {
+        throw 'Production Oculus recovery bytecode lost its gated canonical-bind/readback/native-fallback control flow'
+    }
+    if (([regex]::Matches($methodText, 'GL20C\.glGetInteger')).Count -ne 2 -or
+            ([regex]::Matches($methodText, 'ProgramManager\.m_85578_')).Count -ne 1 -or
+            ([regex]::Matches($methodText, 'GL20C\.glUseProgram')).Count -ne 1 -or
+            ([regex]::Matches($methodText, 'int 35725')).Count -ne 2 -or
+            $methodText.Contains('GL20C.glIsProgram') -or
+            $methodText.Contains('CallbackInfo.cancel')) {
+        throw 'Production Oculus recovery bytecode has unexpected OpenGL query or bind calls'
+    }
+    foreach ($annotationContract in @(
+        'org.spongepowered.asm.mixin.injection.Inject(',
+        'method=["m_173363_"]',
+        'value="HEAD"',
+        'remap=false'
+    )) {
+        if (-not $methodText.Contains($annotationContract)) {
+            throw "Production Oculus recovery handler lost annotation contract: $annotationContract"
+        }
+    }
+}
+
 $auditScript = Join-Path $PSScriptRoot 'audit-public-tree.ps1'
 if (Test-Path -LiteralPath $auditScript -PathType Leaf) {
     & $auditScript -Repository $repositoryPath
@@ -534,6 +615,8 @@ if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
     throw "Expected production JAR was not created: $artifactPath"
 }
 Assert-ProductionJar -JarPath $artifactPath
+Assert-OculusProgramRecoveryBytecode -JarPath $artifactPath `
+    -JavapExecutable (Join-Path $javaHome 'bin\javap.exe')
 
 New-Item -ItemType Directory -Path $distributionDirectory -Force | Out-Null
 $generatedNames = @(

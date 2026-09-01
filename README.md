@@ -52,6 +52,13 @@ cache and the active program diverge. It was introduced to address missing
 physical-world blocks, Create/Flywheel moving parts, and first-person rendering
 after shader-state transitions.
 
+On Forge 1.20.1, Oculus 1.8.0 can cancel a normal program bind when its cached
+ID already matches the request, even if another renderer changed the real
+OpenGL context through a native call. The bridge therefore attempts the normal
+cached bind first and uses a direct bind only if the real context is still
+mismatched. It does not force a Flywheel backend or special-case individual
+blocks or mods.
+
 This bridge is required for the currently pinned runtime. In a controlled
 rollback test, removing it made gears and other moving parts invisible both
 with and without a shader pack, and with Flywheel instancing both enabled and

@@ -65,11 +65,18 @@ public class ExtendedShaderMixin implements ExtendedShaderExtension {
             return;
         }
 
-        // ExtendedShader caches the last Java object it applied. Veil and
-        // Flywheel can legitimately change the actual GL program without
-        // touching that private cache. Rebinding here restores the invariant
-        // ShaderInstance.apply() promises before any uniforms are uploaded.
+        // ExtendedShader and Oculus' GlStateManager mixin both cache program
+        // state. A renderer that calls native glUseProgram directly can change
+        // the real context without updating either cache. Use the canonical
+        // path first so a non-stale Oculus cache is updated normally.
         ProgramManager.glUseProgram(expectedProgram);
+
+        // Oculus 1.8.0 can cancel a canonical bind when its cached value
+        // already equals the request. If the real state remains mismatched
+        // after the canonical attempt, bypass the cached path once.
+        if (GL20C.glGetInteger(GL20C.GL_CURRENT_PROGRAM) != expectedProgram) {
+            GL20C.glUseProgram(expectedProgram);
+        }
     }
 
     @Unique
