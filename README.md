@@ -5,7 +5,7 @@ This repository contains an unofficial Forge 1.20.1 adaptation of
 interactive moving block structures called sub-levels.
 
 This Forge 1.20.1 adaptation and its Forge 47.4.10 update were made with
-ChatGPT and reviewed by a human.
+ChatGPT.
 
 The target runtime is fixed to:
 
